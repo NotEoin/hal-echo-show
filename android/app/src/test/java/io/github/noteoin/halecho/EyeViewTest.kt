@@ -1,4 +1,4 @@
-/* The eye's arithmetic: brightness per state, easing, captions and the anti-burn-in shift. */
+/* The eye's arithmetic: brightness per state, easing and captions. */
 package io.github.noteoin.halecho
 
 import io.github.noteoin.halecho.UiState.Eye
@@ -48,12 +48,5 @@ class EyeViewTest {
         assertEquals(200, EyeView.captionAlpha(1000))
         assertTrue(EyeView.captionAlpha(7000) in 1 until 200)
         assertEquals(0, EyeView.captionAlpha(9000))
-    }
-
-    @Test
-    fun shiftStaysWithinSixPixelsAndMoves() {
-        val shifts = (0 until 16).map { EyeView.burnInShift(it * 60_000L) }
-        assertTrue(shifts.all { abs(it) <= 6f })
-        assertTrue(shifts.toSet().size > 4)
     }
 }

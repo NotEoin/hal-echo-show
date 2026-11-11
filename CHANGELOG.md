@@ -5,6 +5,12 @@ All notable changes to hal-echo-show are listed here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The hardware monitor drifts a few pixels each minute, like the eye, and dims after two minutes
+  without a touch or a conversation with Hal, so it now stays open for an hour by default
+  (`screens.monitor.timeout_s: 3600`, was 600).
+
 ## [0.2.0] - 2026-11-11
 
 ### Added

@@ -51,7 +51,7 @@ screens:
   monitor:
     command: [btop]
     modes: [desk, personal]   # not home: the process list is private
-    timeout_s: 600            # the eye comes back after this long, against burn-in
+    timeout_s: 3600           # the eye comes back after this long; the screen drifts and dims meanwhile
     title: Hardware monitor
 
 floor:

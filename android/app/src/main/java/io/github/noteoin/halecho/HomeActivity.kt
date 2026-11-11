@@ -1,10 +1,11 @@
 /*
  * The home screen: Hal's eye, full screen, from boot. Holding the eye for two seconds opens a
  * menu to pair, rename the device, see the link's status, or open Android's settings (the way
- * back to the stock launcher). The screen dims while the room is asleep.
+ * back to the stock launcher). The screen dims while the room is asleep ([BurnIn]).
  *
  * When the PC opens a terminal screen (the hardware monitor) it takes the whole screen; holding
- * it for two seconds, like the eye's menu, closes it.
+ * it for two seconds, like the eye's menu, closes it. It dims after a while with no touch and no
+ * conversation with Hal, and either brings it back to full brightness.
  */
 package io.github.noteoin.halecho
 
@@ -17,6 +18,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.MotionEvent
 import android.view.View
@@ -27,6 +29,7 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.EditText
 import android.widget.FrameLayout
 import io.github.noteoin.halecho.crypto.DeviceIdentity
+import io.github.noteoin.halecho.ui.BurnIn
 import io.github.noteoin.halecho.ui.EyeView
 import io.github.noteoin.halecho.ui.RemoteTerminalView
 import io.github.noteoin.halecho.ui.TerminalBus
@@ -35,12 +38,16 @@ class HomeActivity : Activity(), TerminalBus.Screen {
     private lateinit var eye: EyeView
     private lateinit var terminal: RemoteTerminalView
     private var shownTerm = -1L
+    private var lastUsedMs = 0L
     private val handler = Handler(Looper.getMainLooper())
     private val openMenu = Runnable { showMenu() }
     private val dimmer = object : Runnable {
         override fun run() {
+            val eye = UiState.eye
+            val now = SystemClock.uptimeMillis()
+            if (BurnIn.inConversation(eye)) lastUsedMs = now
             val params = window.attributes
-            val target = if (UiState.eye == UiState.Eye.ASLEEP) ASLEEP_BRIGHTNESS else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            val target = BurnIn.brightness(eye, shownTerm >= 0, now - lastUsedMs)
             if (params.screenBrightness != target) {
                 params.screenBrightness = target
                 window.attributes = params
@@ -93,8 +100,14 @@ class HomeActivity : Activity(), TerminalBus.Screen {
         super.onDestroy()
     }
 
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        lastUsedMs = SystemClock.uptimeMillis()
+        return super.dispatchTouchEvent(event)
+    }
+
     override fun show(term: Long, title: String) {
         shownTerm = term
+        lastUsedMs = SystemClock.uptimeMillis()
         terminal.start(term)
         terminal.visibility = View.VISIBLE
         eye.visibility = View.GONE
@@ -182,7 +195,6 @@ class HomeActivity : Activity(), TerminalBus.Screen {
         const val MIC_REQUEST = 1
         const val HOLD_MS = 2000L
         const val DIM_CHECK_MS = 1000L
-        const val ASLEEP_BRIGHTNESS = 0.05f
         const val FINGERPRINT_CHARS = 16 // the length `hal-echo devices` and mDNS show
     }
 }

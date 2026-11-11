@@ -24,7 +24,7 @@ The following table lists the settings you are most likely to change.
 | `speaker_eq.*` | on | EQ for the Echo's small speaker: cuts below `highpass_hz` (150), trims `mud_hz` (350), lifts `presence_hz` (3500) and `air_hz` (8000); `hal-echo say` plays a line to compare |
 | `screens.monitor.command` | `[btop]` | The program the hardware monitor runs on the PC |
 | `screens.monitor.modes` | `[desk, personal]` | Modes that may open it; not home, since the process list is private |
-| `screens.monitor.timeout_s` | `600` | The eye comes back after this long |
+| `screens.monitor.timeout_s` | `3600` | The eye comes back after this long |
 | `floor.window_ms` | `350` | Wake reports this close together count as one, and the loudest answers |
 | `coexist.hal_voice_loop` | `false` | `true` lets hal-voice's own loop run alongside |
 | `modes.personal.denied_packs` | `[desktop]` | Packs personal mode refuses |

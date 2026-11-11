@@ -5,7 +5,9 @@
  * back to the PC with any other input the emulator produces. A tap is reported when the finger
  * lifts, so that a two-second hold, which closes the terminal, never clicks the program too.
  *
- * The text size is the largest that still gives btop its minimum of 80 x 24 cells.
+ * The text size is the largest that still gives btop its minimum of 80 x 24 cells, inside a
+ * border of [BurnIn.SHIFT_PX] on each side: the grid drifts within that border like the eye, so
+ * btop's fixed frame never sits on the same pixels for long and its edges are never clipped.
  */
 package io.github.noteoin.halecho.ui
 
@@ -67,7 +69,9 @@ class RemoteTerminalView @JvmOverloads constructor(
         if (term >= 0 && w > 0 && h > 0) layOut(w, h)
     }
 
-    private fun layOut(w: Int, h: Int) {
+    private fun layOut(viewW: Int, viewH: Int) {
+        val w = viewW - 2 * BurnIn.SHIFT_PX.toInt()
+        val h = viewH - 2 * BurnIn.SHIFT_PX.toInt()
         var size = START_TEXT_PX
         while (true) {
             renderer = TerminalRenderer(size, Typeface.MONOSPACE)
@@ -97,7 +101,12 @@ class RemoteTerminalView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         canvas.drawColor(Color.BLACK)
-        emulator?.let { renderer.render(it, canvas, 0, -1, -1, -1, -1) }
+        val target = emulator ?: return
+        val offset = BurnIn.SHIFT_PX + BurnIn.shift(System.currentTimeMillis())
+        canvas.save()
+        canvas.translate(offset, offset)
+        renderer.render(target, canvas, 0, -1, -1, -1, -1)
+        canvas.restore()
     }
 
     private val closeOnHold = Runnable {
@@ -126,8 +135,9 @@ class RemoteTerminalView @JvmOverloads constructor(
     private fun click(x: Float, y: Float) {
         val target = emulator ?: return
         if (!target.isMouseTrackingActive) return
-        val col = (x / renderer.fontWidth).toInt() + 1
-        val row = (y / renderer.fontLineSpacing).toInt() + 1
+        val offset = BurnIn.SHIFT_PX + BurnIn.shift(System.currentTimeMillis())
+        val col = ((x - offset) / renderer.fontWidth).toInt().coerceAtLeast(0) + 1
+        val row = ((y - offset) / renderer.fontLineSpacing).toInt().coerceAtLeast(0) + 1
         target.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, col, row, true)
         target.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, col, row, false)
     }

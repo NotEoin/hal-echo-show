@@ -9,9 +9,8 @@
  *
  * Brightness follows what Hal is doing (intensity). At rest the lens breathes slowly, once every
  * eight seconds, and every change of state is eased, so a wake word the PC then rejects never
- * flashes the lens. When the room is asleep a dim clock sits in the corner. The picture moves a
- * few pixels each minute, because a fixed image can stay on this panel (the LineageOS thread
- * reports retention).
+ * flashes the lens. When the room is asleep a dim clock sits in the corner. The picture drifts a
+ * few pixels each minute ([BurnIn]).
  */
 package io.github.noteoin.halecho.ui
 
@@ -75,7 +74,7 @@ class EyeView(context: Context) : View(context) {
         super.onDraw(canvas)
         val now = System.currentTimeMillis()
         val eye = UiState.eye
-        val shift = burnInShift(now)
+        val shift = BurnIn.shift(now)
         val cx = width / 2f + shift
         val cy = height / 2f + shift
         val radius = min(width, height) * RADIUS
@@ -240,8 +239,6 @@ class EyeView(context: Context) : View(context) {
         private const val LETTER_SPACING_EM = 0.12f // the site's tracking-[.12em]
         private const val CAPTION_HOLD_MS = 6000L
         private const val CAPTION_FADE_MS = 2000L
-        private const val SHIFT_PX = 6f
-        private const val SHIFT_PERIOD_MIN = 16
         private const val MAX_STEP_MS = 100L
 
         /** One slow breath every eight seconds at rest. */
@@ -283,12 +280,6 @@ class EyeView(context: Context) : View(context) {
             ageMs < CAPTION_HOLD_MS + CAPTION_FADE_MS ->
                 (TEXT_ALPHA * (1 - (ageMs - CAPTION_HOLD_MS) / CAPTION_FADE_MS.toFloat())).toInt()
             else -> 0
-        }
-
-        /** A small offset that changes once a minute and repeats every 16 minutes. */
-        fun burnInShift(nowMs: Long): Float {
-            val minute = (nowMs / 60_000L % SHIFT_PERIOD_MIN).toDouble()
-            return (SHIFT_PX * sin(minute / SHIFT_PERIOD_MIN * 2 * PI)).toFloat()
         }
 
         private fun alpha(fraction: Float): Int = (fraction * 255).toInt().coerceIn(0, 255)
