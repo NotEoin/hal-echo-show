@@ -77,7 +77,7 @@ class FakeBackend:
     def addressed(self, text: str) -> tuple[bool, str]:
         words = text.strip(" ,.!?").split(" ", 1)
         if words[0].lower().strip(",") != "hal":
-            return False, text
+            return False, text.strip(" ,.!?")  # as hal-voice's addressed() does
         return True, words[1].strip(" ,.!?") if len(words) > 1 else ""
 
     def transcribe(self, pcm: bytes) -> str:

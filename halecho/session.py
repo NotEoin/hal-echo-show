@@ -293,14 +293,12 @@ class DeviceSession:
         if self._approval is not None and not self._approval.done():
             self._approval.set_result(text)  # an answer recorded as an utterance still counts
             return
-        if followup:
-            request = text.strip(" ,.!?")
-        else:
-            named, request = self.backend.addressed(text)
-            if not named:
-                log.info("%s heard, not addressed: %r", self.device.name, text)
-                await self.send({"type": "turn_end", "turn": turn_id, "heard": False})
-                return
+        # A follow-up needs no name, but people still say it: it is removed either way
+        named, request = self.backend.addressed(text)
+        if not named and not followup:
+            log.info("%s heard, not addressed: %r", self.device.name, text)
+            await self.send({"type": "turn_end", "turn": turn_id, "heard": False})
+            return
         if not request:
             # "Hal" alone: the next utterance is the request
             await self.send({"type": "listen", "turn": turn_id, "purpose": "request"})

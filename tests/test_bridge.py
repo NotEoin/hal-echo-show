@@ -233,6 +233,18 @@ async def test_hardware_monitor_opens_streams_takes_input_and_closes(bridge, tmp
     assert not screen._proc.running
 
 
+async def test_follow_up_that_names_hal_still_opens_the_monitor(bridge, tmp_path):
+    """Regression: "Hey Hal, open the hardware monitor" as a follow-up went to the brain."""
+    bridge.settings["screens"]["monitor"]["command"] = FAKE_MONITOR
+    device = await _paired(bridge, tmp_path)
+    await device.expect("welcome")
+    await device.send(
+        {"type": "utterance", "turn": 1, "text": "Hal, open the hardware monitor", "followup": True}
+    )
+    assert (await device.expect("view"))["name"] == "terminal"
+    assert bridge.backend.brains == []
+
+
 async def test_monitor_is_refused_in_home_mode(bridge, tmp_path):
     device = await _paired(bridge, tmp_path, mode="home")
     await device.expect("welcome")

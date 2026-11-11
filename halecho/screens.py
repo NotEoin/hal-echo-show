@@ -23,13 +23,15 @@ OPEN_MONITOR = "open_monitor"
 CLOSE_SCREEN = "close_screen"
 
 _MONITOR = r"(?:hardware|system|resource|performance|computer|pc)\s+monitor"
+# "can you", "could you" and "please" in front are politeness, not part of the command
+_POLITE = r"^(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?"
 _OPEN = re.compile(
-    rf"^(?:please\s+)?(?:open|show(?:\s+me)?|start|launch|bring\s+up|pull\s+up|display|put\s+up)"
+    rf"{_POLITE}(?:open(?:\s+up)?|show(?:\s+me)?|start|launch|bring\s+up|pull\s+up|display|put\s+up)"
     rf"\s+(?:the\s+|a\s+|your\s+|my\s+)?{_MONITOR}(?:\s+please)?$",
     re.I,
 )
 _CLOSE = re.compile(
-    r"^(?:please\s+)?(?:close|hide|exit|quit|stop|dismiss|turn\s+off|put\s+away)"
+    rf"{_POLITE}(?:close|hide|exit|quit|stop|dismiss|turn\s+off|put\s+away)"
     rf"\s+(?:the\s+|your\s+|my\s+)?(?:{_MONITOR}|monitor)(?:\s+please)?$"
     r"|^(?:go\s+)?back\s+to\s+(?:the\s+|your\s+)?eye$",
     re.I,
