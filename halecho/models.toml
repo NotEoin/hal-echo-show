@@ -1,0 +1,28 @@
+# Speech models the PC downloads once and sends to devices over the paired link.
+# Sizes and SHA-256 sums: whisper.cpp files from Hugging Face's LFS metadata, the Vosk zip
+# hashed after download (both checked 2026-11-11). Whisper weights are MIT licensed, the
+# Vosk model Apache 2.0.
+
+["whisper-tiny.en-q8_0"]
+kind = "whisper"
+url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en-q8_0.bin"
+size = 43550795
+sha256 = "5bc2b3860aa151a4c6e7bb095e1fcce7cf12c7b020ca08dcec0c6d018bb7dd94"
+
+["whisper-base.en-q5_1"]
+kind = "whisper"
+url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q5_1.bin"
+size = 59721011
+sha256 = "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f"
+
+["whisper-base.en-q8_0"]
+kind = "whisper"
+url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q8_0.bin"
+size = 81781811
+sha256 = "a4d4a0768075e13cfd7e19df3ae2dbc4a68d37d36a7dad45e8410c9a34f8c87e"
+
+[vosk-small-en]
+kind = "vosk"
+url = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
+size = 41205931
+sha256 = "30f26242c4eb449f948e42cb302dd7a686cb29a3423a8367f99ff41780942498"
