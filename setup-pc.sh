@@ -26,7 +26,8 @@ if [ ! -f "$hal_voice/pyproject.toml" ]; then
 fi
 hal_voice="$(cd "$hal_voice" && pwd)"
 
-if ! ldconfig -p 2>/dev/null | grep -q libsodium; then
+# grep reads all of it: with pipefail, `grep -q` stopping early fails ldconfig with SIGPIPE
+if ! ldconfig -p 2>/dev/null | grep libsodium > /dev/null; then
     echo "libsodium is missing: install libsodium23 (Debian, Ubuntu) or libsodium (Fedora, Arch)." >&2
     exit 1
 fi
@@ -38,7 +39,7 @@ if ! $assume_yes; then
 fi
 
 if command -v uv > /dev/null; then
-    uv venv --python 3.12 "$ROOT/.venv"
+    uv venv --allow-existing --python 3.12 "$ROOT/.venv"  # re-running setup keeps the venv
     VIRTUAL_ENV="$ROOT/.venv" uv pip install -e "$hal_voice" -e "$ROOT"
 else
     python3.12 -m venv "$ROOT/.venv"
