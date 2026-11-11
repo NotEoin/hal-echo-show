@@ -9,7 +9,8 @@ cd "$(dirname "$0")"
 IMAGE=hal-echo-android:1
 task="${1:-apk}"
 
-docker image inspect "$IMAGE" > /dev/null 2>&1 || docker build -t "$IMAGE" .
+# The host network: on GitHub's runners the default build network cannot resolve DNS
+docker image inspect "$IMAGE" > /dev/null 2>&1 || docker build --network host -t "$IMAGE" .
 
 run() {
     docker run --rm \
