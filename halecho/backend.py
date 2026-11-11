@@ -67,7 +67,7 @@ class Backend(Protocol):
 class HalVoiceBackend:
     """The real backend, built on an installed hal-voice."""
 
-    def __init__(self) -> None:
+    def __init__(self, settings: Any = None) -> None:
         try:
             from halvoice import config as hv_config
             from halvoice import tts
@@ -88,6 +88,10 @@ class HalVoiceBackend:
         self._synth_lock = threading.Lock()
         self._turn_wait_s = float(self._hv_cfg.get("gpu.turn_wait_s", 12))
         self._transcriber: Any = None
+        from . import speaker_eq
+
+        self._speaker_eq = speaker_eq
+        self._eq_board = speaker_eq.chain(settings) if settings is not None else None
 
     def make_brain(self, mode: str, listen: Callable[[], str], settings: Any) -> Brain:
         """A brain for `mode`, built by `halecho.modes`."""
@@ -102,7 +106,8 @@ class HalVoiceBackend:
         with self._synth_lock:
             segments = list(self._tts.synth_stream(sentence))
         for audio, sr in segments:
-            pcm = np.clip(np.asarray(audio, dtype=np.float32), -1.0, 1.0) * PCM_MAX
+            audio = self._speaker_eq.apply(self._eq_board, np.asarray(audio, dtype=np.float32), sr)
+            pcm = np.clip(audio, -1.0, 1.0) * PCM_MAX
             yield pcm.astype("<i2").tobytes(), int(sr)
 
     def addressed(self, text: str) -> tuple[bool, str]:

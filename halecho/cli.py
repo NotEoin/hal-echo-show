@@ -47,7 +47,7 @@ def cmd_serve(_args: argparse.Namespace) -> int:
     if not settings.get("coexist.hal_voice_loop"):
         _stop_hal_voice_loop()
     try:
-        backend = HalVoiceBackend()
+        backend = HalVoiceBackend(settings)
     except BackendUnavailable as exc:
         print(f"hal-echo: {exc}", file=sys.stderr)
         return 1
