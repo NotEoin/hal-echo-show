@@ -1,6 +1,7 @@
 # Benchmark Whisper on the Echo
 
-This page times Whisper on the Echo's own CPU before you choose a speech model. It pushes
+This page times Whisper on the Echo's own CPU, to decide whether to transcribe there
+(`listener.stt_location: device`) instead of on the PC, the default, and with which model. It pushes
 whisper.cpp's benchmark tools to `/data/local/tmp`, runs them and deletes them: nothing is
 installed, and no root is needed.
 
@@ -25,23 +26,18 @@ installed, and no root is needed.
    android/bench/run-on-device.sh ~/.cache/hal-echo-show/models/ggml-*.bin
    ```
 
-4. Pick the most accurate model that transcribes a short request in a time you accept, and set it
-   in `~/.config/hal-echo-show/config.yaml`. A request is usually two to five seconds of speech, so
-   expect about a third of the clip's time.
+4. If a model transcribes a short request in a time you accept, switch to it in
+   `~/.config/hal-echo-show/config.yaml`. A request is usually two to five seconds of speech.
 
    ```yaml
    listener:
-     stt_model: whisper-base.en-q8_0
-     stt_audio_ctx: 0       # try 768 if the benchmark shows it much faster
+     stt_location: device
+     stt_model: whisper-base.en-q5_1
+     stt_audio_ctx: 256     # a 5-second window: much faster, but longer requests are cut off
    ```
 
-5. If every model is too slow, transcribe on the PC instead. The Echo then sends the recording of
+5. If every model is too slow, keep the default, `stt_location: pc`: the Echo sends the recording of
    each request to hal-voice's faster-whisper.
-
-   ```yaml
-   listener:
-     stt_location: pc
-   ```
 
 ## Results on one Echo
 

@@ -20,11 +20,14 @@ listener:
   awake_s: 300              # after the last sound, the device listens for its name this long, then idles
   followup_s: 8             # after a reply, carry on talking without the name for this long
   approval_listen_s: 20     # a spoken approval waits at most this long, as in hal-voice
-  stt_model: whisper-base.en-q8_0  # a name from halecho/models.toml
+  stt_model: whisper-base.en-q5_1  # a name from halecho/models.toml; used with stt_location: device
   stt_audio_ctx: 0          # whisper.cpp audio_ctx; 0 is the full 30 s window, smaller is faster
   wake_model: vosk-small-en
   wake_phrases: ["hey hal", "hal", "okay hal"]
-  stt_location: device      # device | pc: pc sends the recorded request to hal-voice's faster-whisper
+  # pc: the Echo records a request addressed to Hal and the PC transcribes it with hal-voice's
+  # faster-whisper. device: Whisper on the Echo, about 9 s per request on an Echo Show 5
+  # (measured 2026-11-11, docs/howto/benchmark-whisper-on-the-echo.md).
+  stt_location: pc          # pc | device
   # Whether saying "Hal" while HAL speaks stops him. auto: only on a device with an echo
   # canceller; without one HAL's own voice triggers it. Tapping the eye always stops him.
   barge_in: auto            # auto | on | off

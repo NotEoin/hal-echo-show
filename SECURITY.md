@@ -36,10 +36,10 @@ The design assumes an attacker on your home network.
 
 ## What leaves the Echo
 
-The Echo sends the PC the text of utterances addressed to Hal: those with the wake word, follow-ups
-in the few seconds after a reply, and approval answers. Other speech is dropped on the device
-without being transcribed. With `listener.stt_location: pc` the recording of those utterances is
-sent instead of the text. While the room is quiet the Echo measures loudness only. The bridge sends
+The Echo sends the PC the recordings of utterances addressed to Hal: those with the wake word,
+follow-ups in the few seconds after a reply, and approval answers. Other speech is dropped on the
+device without being transcribed or sent. With `listener.stt_location: device` the Echo sends the
+text instead of the recording. While the room is quiet the Echo measures loudness only. The bridge sends
 no data anywhere but the paired devices and the model URLs in `halecho/models.toml`.
 
 ## Scope
