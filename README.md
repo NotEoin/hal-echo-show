@@ -5,8 +5,6 @@
 ![android](https://img.shields.io/badge/LineageOS-18.1-green?style=flat-square)
 ![python](https://img.shields.io/badge/python-3.11--3.12-blue?style=flat-square)
 
-![An Echo Show 5 on a kitchen counter, its screen showing HAL 9000's red eye](./media/echo-show.jpg)
-
 > *"I am putting myself to the fullest possible use."*
 
 Turn a jailbroken Echo Show 5 into a room speaker for [hal-voice](https://github.com/NotEoin/hal-voice):
@@ -14,7 +12,7 @@ HAL's red eye on the screen from the moment it boots, listening for its name, an
 voice. The Echo does the listening; your PC does the transcription, the thinking and the voice,
 over an encrypted link that only your paired devices can open.
 
-![HAL's eye on the Echo Show 5](./media/eye.png)
+![An Echo Show 5 on a kitchen counter, its screen showing HAL 9000's red eye](./media/echo-show.jpg)
 
 ```
  Echo Show (LineageOS)                                    your PC
