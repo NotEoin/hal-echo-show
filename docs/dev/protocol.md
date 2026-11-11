@@ -29,7 +29,7 @@ The device sends the following JSON messages.
 | `ping` | `t` | Keep-alive, every 20 s |
 | `crash_report` | `text` | The stack trace of the app's last crash, sent once after it restarts |
 | `term_size` | `term`, `cols`, `rows` | The terminal screen's size in cells; the program starts at it, or is resized |
-| `term_close` | `term` | The terminal was closed on the device (the small eye was tapped) |
+| `term_close` | `term` | The terminal was closed on the device (a two-second hold) |
 
 ## Messages from the PC
 

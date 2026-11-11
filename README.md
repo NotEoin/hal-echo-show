@@ -104,8 +104,8 @@ hal-echo unpair Kitchen                          # its certificate stops working
 ```
 
 On the Echo, hold the eye for two seconds for the menu: pair, rename, status, or Android's settings.
-Say "Hey Hal, open the hardware monitor" for btop from the PC (desk and personal mode); tap the
-small eye beside it, or say "close the monitor", to go back.
+Say "Hey Hal, open the hardware monitor" for btop from the PC, full screen (desk and personal
+mode); hold the screen for two seconds, or say "close the monitor", to go back.
 
 ## Configuration
 

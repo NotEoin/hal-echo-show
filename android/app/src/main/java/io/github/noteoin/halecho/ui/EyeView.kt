@@ -41,8 +41,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 
-/** The eye; [compact] draws the lens alone, small, beside a terminal screen. */
-class EyeView @JvmOverloads constructor(context: Context, private val compact: Boolean = false) : View(context) {
+class EyeView(context: Context) : View(context) {
     private val wash = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bezel = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
@@ -76,15 +75,15 @@ class EyeView @JvmOverloads constructor(context: Context, private val compact: B
         super.onDraw(canvas)
         val now = System.currentTimeMillis()
         val eye = UiState.eye
-        val shift = if (compact) 0f else burnInShift(now)
+        val shift = burnInShift(now)
         val cx = width / 2f + shift
         val cy = height / 2f + shift
-        val radius = min(width, height) * if (compact) COMPACT_RADIUS else RADIUS
+        val radius = min(width, height) * RADIUS
         val target = intensity(eye, now / 1000.0, UiState.level)
         smoothed = ease(smoothed, target, (now - lastFrameMs).coerceIn(0, MAX_STEP_MS), eye == Eye.SPEAKING)
         lastFrameMs = now
         drawLens(canvas, cx, cy, radius, smoothed)
-        if (!compact) drawText(canvas, eye, now, shift)
+        drawText(canvas, eye, now, shift)
         postInvalidateOnAnimation()
     }
 
@@ -117,10 +116,8 @@ class EyeView @JvmOverloads constructor(context: Context, private val compact: B
                 Shader.TileMode.CLAMP,
             )
         }
-        if (!compact) {
-            wash.alpha = alpha(WASH_FLOOR + (1 - WASH_FLOOR) * k)
-            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), wash)
-        }
+        wash.alpha = alpha(WASH_FLOOR + (1 - WASH_FLOOR) * k)
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), wash)
         bezel.strokeWidth = r * BEZEL_WIDTH
         canvas.drawCircle(cx, cy, r * (1 + BEZEL_WIDTH / 2), bezel)
         edge.strokeWidth = r * EDGE_WIDTH
@@ -210,7 +207,6 @@ class EyeView @JvmOverloads constructor(context: Context, private val compact: B
     companion object {
         private val BACKGROUND = Color.rgb(6, 6, 8)
         private const val RADIUS = 0.32f // leaves room under the bezel for a two-line caption
-        private const val COMPACT_RADIUS = 0.4f // the bezel then fills most of its box
         private const val WASH_SIZE = 0.6f
         private const val WASH_FADE_END = 0.7f
         // The site mixes 9% of the tint into the page; on this panel's near-black that barely

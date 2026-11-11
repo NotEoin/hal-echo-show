@@ -2,7 +2,8 @@
  * A terminal whose program runs on the PC: the bytes it writes arrive over the link and go into
  * Termux's emulator, and Termux's renderer draws the screen. There is no local process. Taps
  * become xterm mouse reports when the program asks for them (btop and Textual both do), and go
- * back to the PC with any other input the emulator produces.
+ * back to the PC with any other input the emulator produces. A tap is reported when the finger
+ * lifts, so that a two-second hold, which closes the terminal, never clicks the program too.
  *
  * The text size is the largest that still gives btop its minimum of 80 x 24 cells.
  */
@@ -99,18 +100,36 @@ class RemoteTerminalView @JvmOverloads constructor(
         emulator?.let { renderer.render(it, canvas, 0, -1, -1, -1, -1) }
     }
 
+    private val closeOnHold = Runnable {
+        held = true
+        if (term >= 0) bus.uplink?.close(term)
+    }
+    private var held = false
+
     // Taps are mouse reports for the program; there is nothing to click on the view itself
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        val target = emulator ?: return false
-        if (!target.isMouseTrackingActive) return true
-        val col = (event.x / renderer.fontWidth).toInt() + 1
-        val row = (event.y / renderer.fontLineSpacing).toInt() + 1
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> target.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, col, row, true)
-            MotionEvent.ACTION_UP -> target.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, col, row, false)
+            MotionEvent.ACTION_DOWN -> {
+                held = false
+                postDelayed(closeOnHold, HOLD_MS)
+            }
+            MotionEvent.ACTION_UP -> {
+                removeCallbacks(closeOnHold)
+                if (!held) click(event.x, event.y)
+            }
+            MotionEvent.ACTION_CANCEL -> removeCallbacks(closeOnHold)
         }
         return true
+    }
+
+    private fun click(x: Float, y: Float) {
+        val target = emulator ?: return
+        if (!target.isMouseTrackingActive) return
+        val col = (x / renderer.fontWidth).toInt() + 1
+        val row = (y / renderer.fontLineSpacing).toInt() + 1
+        target.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, col, row, true)
+        target.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, col, row, false)
     }
 
     /** The emulator's callbacks: logging only, since no local session exists. */
@@ -138,6 +157,7 @@ class RemoteTerminalView @JvmOverloads constructor(
 
     companion object {
         const val MIN_COLS = 80 // btop's minimum
+        private const val HOLD_MS = 2000L // the same hold that opens the eye's menu
         const val MIN_ROWS = 24
         private const val START_TEXT_PX = 22
         private const val MIN_TEXT_PX = 10

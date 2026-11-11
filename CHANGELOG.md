@@ -7,9 +7,9 @@ All notable changes to hal-echo-show are listed here. The format follows
 
 ### Added
 
-- A hardware monitor: "Hey Hal, open the hardware monitor" runs btop on the PC and shows it in a
-  terminal on the Echo, with a small eye beside it; "close the monitor", a tap on that eye, the
-  room going quiet or ten minutes bring the eye back. Desk and personal mode only.
+- A hardware monitor: "Hey Hal, open the hardware monitor" runs btop on the PC and shows it full
+  screen in a terminal on the Echo; "close the monitor", a two-second hold, the room going quiet
+  or ten minutes bring the eye back. Desk and personal mode only.
 - A third-party notices file, and the Apache 2.0 licence text inside the app.
 
 ### Fixed
