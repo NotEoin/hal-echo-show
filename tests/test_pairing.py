@@ -111,3 +111,19 @@ async def test_hanging_up_after_the_pc_reply_still_spends_an_attempt(tmp_path):
     assert (await frames.read_frame(reader)).json()["type"] == "pair_reply"
     writer.close()
     assert await task is None
+
+
+async def test_retry_while_the_last_attempt_is_ending_waits_its_turn(tmp_path):
+    """Regression: a retry that arrived before the failed attempt ended was reset unread."""
+    server = _server(["111111", CODE])
+    task = await _start(server)
+    device = FakeDevice(tmp_path)
+    first = asyncio.create_task(
+        pair_as_device("127.0.0.1", server.port, CODE, "Kitchen", device.cert_der)
+    )
+    second = asyncio.create_task(
+        pair_as_device("127.0.0.1", server.port, CODE, "Kitchen", device.cert_der)
+    )
+    results = await asyncio.gather(first, second, return_exceptions=True)
+    assert sum(isinstance(r, PairingFailed) for r in results) == 1
+    assert (await task).name == "Kitchen"

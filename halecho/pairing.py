@@ -102,10 +102,11 @@ class PairingServer:
 
     async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         address = str(writer.get_extra_info("peername", ("?",))[0])
-        if self._busy.locked() or self._done.done():
-            writer.close()  # one pairing at a time
-            return
+        # One pairing at a time: a device that retries at once waits for the last attempt to end
         async with self._busy:
+            if self._done.done():
+                writer.close()
+                return
             self._code_asked = False
             try:
                 dev = await self._pair(reader, writer, address)
