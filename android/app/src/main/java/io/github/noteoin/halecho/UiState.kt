@@ -19,6 +19,13 @@ object UiState {
     @Volatile var level = 0f
     @Volatile var micDb = -100.0
     @Volatile var caption = ""
+        set(value) {
+            field = value
+            captionAtMs = System.currentTimeMillis()
+        }
+
+    /** When [caption] last changed; the eye fades it out a few seconds later. */
+    @Volatile var captionAtMs = 0L
     @Volatile var status = ""
 
     val eye: Eye
