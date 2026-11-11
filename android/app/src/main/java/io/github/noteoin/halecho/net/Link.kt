@@ -1,8 +1,10 @@
 /*
  * The paired, encrypted connection to the PC. One thread connects, reads and reconnects:
  * the saved address first, then mDNS when that fails, with a growing pause between tries.
- * Writes come from any thread and are serialised. A ping every 20 s, and a read timeout of
- * three times that, notice a PC that vanished without closing the connection.
+ * Writes come from any thread and go out, in order, on one writer thread: Android forbids network
+ * I/O on the main thread, and the screen sends terminal sizes and taps from there. A ping every
+ * 20 s, and a read timeout of three times that, notice a PC that vanished without closing the
+ * connection.
  */
 package io.github.noteoin.halecho.net
 
@@ -13,6 +15,7 @@ import org.json.JSONObject
 import java.io.DataInputStream
 import java.io.IOException
 import java.io.OutputStream
+import java.util.concurrent.Executors
 import java.net.InetSocketAddress
 import java.net.SocketTimeoutException
 import javax.net.ssl.SSLSocket
@@ -35,6 +38,7 @@ class Link(
     @Volatile private var out: OutputStream? = null
     private var thread: Thread? = null
     private var pinger: Thread? = null
+    private val writer = Executors.newSingleThreadExecutor { Thread(it, "link-write").apply { isDaemon = true } }
 
     override val connected: Boolean get() = out != null
 
@@ -61,14 +65,14 @@ class Link(
 
     private fun write(frame: ByteArray) {
         val stream = out ?: return
-        try {
-            synchronized(stream) {
+        writer.execute {
+            try {
                 stream.write(frame)
                 stream.flush()
+            } catch (e: IOException) {
+                Log.w(TAG, "send failed: ${e.message}")
+                runCatching { socket?.close() }
             }
-        } catch (e: IOException) {
-            Log.w(TAG, "send failed: ${e.message}")
-            runCatching { socket?.close() }
         }
     }
 
