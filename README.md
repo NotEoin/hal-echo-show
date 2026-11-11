@@ -144,4 +144,6 @@ The [docs index](docs/README.md) lists every page.
 ## Licence
 
 MIT, see [LICENSE](LICENSE). The speech models the bridge downloads keep their own licences:
-Whisper weights are MIT, the Vosk model Apache 2.0.
+Whisper weights are MIT, the Vosk model Apache 2.0. The app bundles the Geist Mono font
+(c) 2023 Vercel, under the SIL Open Font License 1.1, whose text ships with it in
+`android/app/src/main/assets/licenses/geist-mono-OFL.txt`.

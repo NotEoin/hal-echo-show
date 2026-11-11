@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The tint-halvoice CSS token on eoinforrest.me, oklch(0.62 0.20 27), in sRGB -->
+    <color name="hal_tint">#FFE6443D</color>
+</resources>

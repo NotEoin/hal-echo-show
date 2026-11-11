@@ -4,6 +4,9 @@
  * red glow of 18 fading rings, a red core, a hot centre and a specular highlight. Here the bezel
  * is brushed metal around black glass, closer to the film's panel.
  *
+ * Behind the lens sits the site's red wash: the hal-voice section's background, an ellipse of
+ * the halvoice tint fading out by 70% of its size, here swelling with the lens.
+ *
  * Brightness follows what Hal is doing (intensity). At rest the lens breathes slowly, once every
  * eight seconds, and every change of state is eased, so a wake word the PC then rejects never
  * flashes the lens. When the room is asleep a dim clock sits in the corner. The picture moves a
@@ -17,11 +20,15 @@ import android.graphics.BlendMode
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
-import android.graphics.Typeface
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
+import android.text.TextUtils
 import android.view.View
 import io.github.noteoin.halecho.R
 import io.github.noteoin.halecho.UiState
@@ -35,6 +42,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 
 class EyeView(context: Context) : View(context) {
+    private val wash = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bezel = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val glass = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -43,11 +51,15 @@ class EyeView(context: Context) : View(context) {
     private val core = Paint(Paint.ANTI_ALIAS_FLAG).apply { blendMode = BlendMode.PLUS }
     private val hot = Paint(Paint.ANTI_ALIAS_FLAG).apply { blendMode = BlendMode.PLUS }
     private val specular = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(26, 255, 255, 255) }
-    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.rgb(170, 170, 170)
-        textAlign = Paint.Align.CENTER
-        typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+    // The status line of the portfolio site's lens: Geist Mono, upper case, spaced, in its tint
+    private val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = context.getColor(R.color.hal_tint)
+        textAlign = Paint.Align.LEFT // StaticLayout centres lines itself
+        typeface = context.resources.getFont(R.font.geist_mono)
+        letterSpacing = LETTER_SPACING_EM
     }
+    private var captionLayout: StaticLayout? = null
+    private var captionKey = ""
     private val clock = DateFormat.getTimeInstance(DateFormat.SHORT)
     private val date = Date()
     private val oval = RectF()
@@ -80,6 +92,7 @@ class EyeView(context: Context) : View(context) {
         val key = "$cx/$cy/$r"
         if (key != shaderKey) {
             shaderKey = key
+            wash.shader = washShader(cx, cy)
             bezel.shader = LinearGradient(
                 cx - r, cy - r, cx + r, cy + r,
                 intArrayOf(Color.rgb(176, 176, 184), Color.rgb(92, 92, 100), Color.rgb(36, 36, 42)),
@@ -103,6 +116,8 @@ class EyeView(context: Context) : View(context) {
                 Shader.TileMode.CLAMP,
             )
         }
+        wash.alpha = alpha(WASH_FLOOR + (1 - WASH_FLOOR) * k)
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), wash)
         bezel.strokeWidth = r * BEZEL_WIDTH
         canvas.drawCircle(cx, cy, r * (1 + BEZEL_WIDTH / 2), bezel)
         edge.strokeWidth = r * EDGE_WIDTH
@@ -129,14 +144,29 @@ class EyeView(context: Context) : View(context) {
         canvas.restore()
     }
 
+    /**
+     * The site's `radial-gradient(60% 60% at ..., tint 9%, transparent 70%)`: CSS sizes the
+     * ellipse by the box, so it is a circle of 60% of the width, squashed to 60% of the height.
+     */
+    private fun washShader(cx: Float, cy: Float): RadialGradient {
+        val tint = context.getColor(R.color.hal_tint)
+        val radiusX = width * WASH_SIZE
+        val shader = RadialGradient(
+            cx, cy, radiusX,
+            intArrayOf(Color.argb(WASH_PEAK_ALPHA, Color.red(tint), Color.green(tint), Color.blue(tint)), Color.TRANSPARENT, Color.TRANSPARENT),
+            floatArrayOf(0f, WASH_FADE_END, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        shader.setLocalMatrix(Matrix().apply { setScale(1f, height * WASH_SIZE / radiusX, cx, cy) })
+        return shader
+    }
+
     private fun drawText(canvas: Canvas, eye: Eye, now: Long, shift: Float) {
         if (eye == Eye.ASLEEP) {
-            text.textAlign = Paint.Align.LEFT
             text.textSize = height * CLOCK_TEXT
             text.alpha = CLOCK_ALPHA
             date.time = now
-            canvas.drawText(clock.format(date), width * CLOCK_X + shift, height * CLOCK_Y + shift, text)
-            text.textAlign = Paint.Align.CENTER
+            canvas.drawText(clock.format(date).uppercase(), width * CLOCK_X + shift, height * CLOCK_Y + shift, text)
             return
         }
         val (line, alpha) = when (eye) {
@@ -149,7 +179,26 @@ class EyeView(context: Context) : View(context) {
         if (line.isEmpty() || alpha == 0) return
         text.textSize = height * CAPTION_TEXT
         text.alpha = alpha
-        canvas.drawText(line, width / 2f, height * CAPTION_Y, text)
+        val layout = captionLayout(line.uppercase())
+        canvas.save()
+        canvas.translate((width - layout.width) / 2f, height - layout.height - height * CAPTION_MARGIN)
+        layout.draw(canvas)
+        canvas.restore()
+    }
+
+    /** The caption laid out in at most two lines; rebuilt only when the text or size changes. */
+    private fun captionLayout(line: String): StaticLayout {
+        val maxWidth = (width * CAPTION_WIDTH).toInt()
+        val key = "$line/$maxWidth/${text.textSize}"
+        captionLayout?.takeIf { key == captionKey }?.let { return it }
+        val layout = StaticLayout.Builder.obtain(line, 0, line.length, text, maxWidth)
+            .setAlignment(Layout.Alignment.ALIGN_CENTER)
+            .setMaxLines(CAPTION_LINES)
+            .setEllipsize(TextUtils.TruncateAt.END)
+            .build()
+        captionLayout = layout
+        captionKey = key
+        return layout
     }
 
     // The home screen's hold gesture calls this on release, for accessibility services
@@ -157,7 +206,13 @@ class EyeView(context: Context) : View(context) {
 
     companion object {
         private val BACKGROUND = Color.rgb(6, 6, 8)
-        private const val RADIUS = 0.36f
+        private const val RADIUS = 0.32f // leaves room under the bezel for a two-line caption
+        private const val WASH_SIZE = 0.6f
+        private const val WASH_FADE_END = 0.7f
+        // The site mixes 9% of the tint into the page; on this panel's near-black that barely
+        // shows, so the wash peaks at 18% (46 of 255), judged by eye on the device
+        private const val WASH_PEAK_ALPHA = 46
+        private const val WASH_FLOOR = 0.55f // dimmest share of the wash, with the lens at rest
         private const val BEZEL_WIDTH = 0.11f
         private const val EDGE_WIDTH = 0.012f
         private const val GLOW_RINGS = 18
@@ -177,8 +232,12 @@ class EyeView(context: Context) : View(context) {
         private const val CLOCK_TEXT = 0.08f
         private const val CLOCK_ALPHA = 90
         private const val TEXT_ALPHA = 200
-        private const val CAPTION_Y = 0.965f
-        private const val CAPTION_TEXT = 0.045f
+        private const val CAPTION_MARGIN = 0.02f
+        private const val CAPTION_TEXT = 0.036f
+        private const val CAPTION_WIDTH = 0.9f
+        private const val CAPTION_LINES = 2
+
+        private const val LETTER_SPACING_EM = 0.12f // the site's tracking-[.12em]
         private const val CAPTION_HOLD_MS = 6000L
         private const val CAPTION_FADE_MS = 2000L
         private const val SHIFT_PX = 6f

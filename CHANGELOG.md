@@ -17,3 +17,4 @@ All notable changes to hal-echo-show are listed here. The format follows
 - A Hal pack manifest with `echo_say` and `echo_devices`.
 - A Whisper benchmark that runs on the Echo without installing anything.
 - A speaker EQ for the Echo's small driver, applied to HAL's voice before it is sent.
+- The eye's captions in Geist Mono and the halvoice tint, with a red wash behind the lens.

@@ -63,9 +63,13 @@ class PairActivity : Activity() {
         search(prefs)
     }
 
+    // The eye's caption style: Geist Mono, upper case, spaced, in the site's tint
     private fun text(sizeSp: Float) = TextView(this).apply {
         textSize = sizeSp
-        setTextColor(Color.WHITE)
+        setTextColor(getColor(R.color.hal_tint))
+        typeface = resources.getFont(R.font.geist_mono)
+        letterSpacing = LETTER_SPACING_EM
+        isAllCaps = true
         gravity = Gravity.CENTER
     }
 
@@ -125,6 +129,7 @@ class PairActivity : Activity() {
         const val TITLE_SIZE_SP = 22f
         const val CODE_SIZE_SP = 72f
         const val CODE_SPACING = 0.1f
-        const val STATUS_SIZE_SP = 18f
+        const val STATUS_SIZE_SP = 16f
+        const val LETTER_SPACING_EM = 0.12f // the site's tracking-[.12em]
     }
 }
