@@ -54,6 +54,10 @@ class HalService : Service(), Link.Handler {
     private var sayTurn = 0L
     @Volatile private var droppedTurn = -1L
 
+    // Models asked for and not yet arrived: each is asked for once per connection
+    private val requested = HashSet<String>()
+    @Volatile private var starting = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -113,7 +117,9 @@ class HalService : Service(), Link.Handler {
     override fun onDisconnected(reason: String) {
         UiState.connected = false
         UiState.thinking = false
-        UiState.status = "Can't reach ${prefs.pcName}: $reason"
+        UiState.status = "Waiting for ${prefs.pcName}"
+        Log.i(TAG, "link down: $reason")
+        synchronized(requested) { requested.clear() }
         player.stop()
         listener?.onDisconnected()
     }
@@ -164,23 +170,50 @@ class HalService : Service(), Link.Handler {
     private fun prepareModels() {
         val msg = welcome ?: return
         val wanted = msg.optJSONObject("models") ?: return
-        val missing = wanted.keys().asSequence().filter { name ->
+        val missing = neededModels(msg).filter { name ->
             models.ready(name, wanted.getJSONObject(name).getString("sha256")) == null
-        }.toList()
+        }
         if (missing.isNotEmpty()) {
             UiState.modelsReady = false
             UiState.status = "Fetching speech models from the PC"
-            missing.forEach { link.send(JSONObject().put("type", "need_model").put("name", it)) }
+            val ask = synchronized(requested) { missing.filter(requested::add) }
+            ask.forEach { link.send(JSONObject().put("type", "need_model").put("name", it)) }
             return
         }
-        worker.execute(::startListening)
+        if (listener != null || starting) return
+        starting = true
+        worker.execute {
+            try {
+                startListening()
+            } catch (e: Exception) { // a model that will not load must not take the app down
+                Log.e(TAG, "speech models failed to load", e)
+                UiState.status = "Speech models failed to load; fetching them again"
+                neededModels(msg).forEach(models::forget)
+                prepareModels()
+            } finally {
+                starting = false
+            }
+        }
+    }
+
+    /** The wake word model always; Whisper only when the device transcribes. */
+    private fun neededModels(msg: JSONObject): List<String> {
+        val settings = msg.getJSONObject("listener")
+        val names = mutableListOf(settings.getString("wake_model"))
+        if (settings.optString("stt_location", "device") != "pc") names += settings.getString("stt_model")
+        return names
     }
 
     private fun onBlob(purpose: String, name: String, file: File) {
         when (purpose) {
             "model" -> {
                 val info = welcome?.optJSONObject("models")?.optJSONObject(name) ?: return
-                models.install(name, info.getString("kind"), info.getString("sha256"), file)
+                synchronized(requested) { requested.remove(name) }
+                if (models.ready(name, info.getString("sha256")) == null) {
+                    models.install(name, info.getString("kind"), info.getString("sha256"), file)
+                } else {
+                    file.delete() // a copy that crossed with the first; the installed one may be in use
+                }
                 prepareModels()
             }
             "update" -> Updater.install(this, file)

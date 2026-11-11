@@ -31,6 +31,11 @@ class ModelStore(private val dir: File) {
         return installed(folder)
     }
 
+    /** Removes a model so it is fetched again. */
+    fun forget(name: String) {
+        File(dir, name).deleteRecursively()
+    }
+
     private fun installed(folder: File): File {
         val whisper = File(folder, WHISPER_FILE)
         if (whisper.exists()) return whisper
