@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Android build output and caches
+android/.gradle/
+android/app/build/
+android/app/.cxx/
+android/build/
+android/local.properties
+android/bench/out/
+
+# The app's signing key and its password: keep them, never publish them
+android/keystore/
+*.jks
+*.keystore
+
+# Speech models, downloaded on demand
+*.bin
+*.zip
+
+# Recordings and logs
+*.wav
+*.log

@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hal-echo-show"
+version = "0.1.0"
+description = "Hal's voice on a jailbroken Echo Show, bridged to your PC over a paired, encrypted link"
+readme = "README.md"
+license = { file = "LICENSE" }
+# hal-voice, which supplies the brain and the voice, supports 3.11 and 3.12 only
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "PyYAML>=6.0,<7",
+  "cryptography>=42",
+  "zeroconf>=0.130,<1",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.3,<10", "pytest-asyncio>=0.24,<2"]
+
+[project.scripts]
+hal-echo = "halecho.cli:main"
+
+[tool.setuptools]
+packages = ["halecho"]
+
+[tool.setuptools.package-data]
+halecho = ["config.yaml", "models.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["network: downloads from the internet; run on request (-m network)"]
+addopts = "-m 'not network'"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["android"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "BLE", "S", "T20", "RUF", "PLC2401"]
+ignore = [
+  # argv-only subprocess calls with a timeout are the design
+  "S603",
+  "S607",
+  "E501",  # the formatter wraps code; prose strings and comments are left as written
+  "RUF001", "RUF002", "RUF003",  # scripts/ascii-check.sh gates non-ASCII text for every file type
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S108"]  # pytest asserts; fixtures hold dummy secrets and paths
+"halecho/cli.py" = ["T201"]  # entry point: results are for the person at the terminal
+"halecho/doctor.py" = ["T201"]  # `hal-echo doctor` prints its checks
+"halecho/hubtool.py" = ["T201"]  # one-shot worker: JSON result on stdout
+
+[tool.ruff.lint.isort]
+known-local-folder = ["conftest", "fakedevice"]
