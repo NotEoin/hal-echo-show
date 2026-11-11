@@ -9,6 +9,7 @@ import io.github.noteoin.halecho.listen.ListenerUi
 import io.github.noteoin.halecho.listen.Outbox
 import io.github.noteoin.halecho.listen.Speaker
 import io.github.noteoin.halecho.listen.Spotter
+import io.github.noteoin.halecho.listen.Wake
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,6 +20,8 @@ import org.junit.Test
 class ListenerTest {
     private var now = 0L
     private var wakeOnNextSound = false
+    private var wakeKind = Wake.HEARD
+    private var wakeOnNextQuiet = false
     private var spotterFrames = 0
     private val sent = mutableListOf<JSONObject>()
     private var playing = false
@@ -32,11 +35,15 @@ class ListenerTest {
     @Before
     fun setUp() {
         val spotter = object : Spotter {
-            override fun accept(frame: ShortArray): Boolean {
+            override fun accept(frame: ShortArray): Wake {
                 spotterFrames++
+                if (wakeOnNextQuiet && frame === quiet) {
+                    wakeOnNextQuiet = false
+                    return wakeKind
+                }
                 val fire = wakeOnNextSound && frame === loud
                 if (fire) wakeOnNextSound = false
-                return fire
+                return if (fire) wakeKind else Wake.NONE
             }
             override fun reset() = Unit
         }
@@ -134,15 +141,41 @@ class ListenerTest {
     }
 
     @Test
-    fun wakeWordWhileSpeakingStopsHal() {
+    fun confirmedWakeWordWhileSpeakingStopsHal() {
         settle()
         listener.onMessage(JSONObject().put("type", "say").put("turn", 3))
         playing = true
+        wakeKind = Wake.CONFIRMED
         wakeOnNextSound = true
         feed(loud, 5)
         assertTrue(stopped)
         assertTrue(types().containsAll(listOf("barge_in", "wake")))
         assertEquals(3L, sent.first { it.getString("type") == "barge_in" }.getLong("turn"))
+    }
+
+    /** Regression: HAL's own voice, heard as a partial "Hal", cut his weather reply short. */
+    @Test
+    fun partialWakeWordWhileSpeakingDoesNotStopHal() {
+        settle()
+        listener.onMessage(JSONObject().put("type", "say").put("turn", 8))
+        playing = true
+        wakeOnNextSound = true
+        feed(loud, 30)
+        assertFalse(stopped)
+        assertEquals(emptyList<String>(), types())
+    }
+
+    @Test
+    fun wakeAfterTheUtteranceEndedOpensNoTurn() {
+        settle()
+        wakeOnNextQuiet = true
+        wakeKind = Wake.CONFIRMED
+        feed(quiet, 5)
+        assertEquals(emptyList<String>(), types())
+        wakeKind = Wake.HEARD
+        wakeOnNextSound = true
+        feed(loud, 5)
+        assertEquals("wake", types().single()) // a stale turn does not block the next wake
     }
 
     @Test

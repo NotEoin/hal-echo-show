@@ -10,7 +10,9 @@
  * - it is the answer to a spoken approval request.
  *
  * Everything else is dropped unheard. An utterance that starts while HAL is speaking is his
- * own voice coming back, unless it holds the wake word, which stops him (barge-in).
+ * own voice coming back, unless it holds the wake word, which stops him (barge-in). With no echo
+ * canceller on this ROM, HAL's voice can sound like "Hal" to the spotter, so stopping him needs a
+ * confirmed wake, not a partial one.
  * Transcription runs on [worker] so capture never stalls. The PC's messages arrive through
  * [onMessage] from the link thread; [lock] keeps the two threads' views consistent.
  */
@@ -24,10 +26,21 @@ import org.json.JSONObject
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
+/** What the spotter made of one frame. */
+enum class Wake {
+    NONE,
+
+    /** A partial result names Hal: quick, and good enough when HAL is silent. */
+    HEARD,
+
+    /** A final result names Hal with high confidence: needed to stop HAL mid-reply. */
+    CONFIRMED,
+}
+
 /** Hears the wake word in a stream of frames. */
 interface Spotter {
-    /** True when the wake word ends in this frame. */
-    fun accept(frame: ShortArray): Boolean
+    /** Whether the wake word was heard in this frame. */
+    fun accept(frame: ShortArray): Wake
 
     fun reset()
 }
@@ -150,7 +163,11 @@ class Listener(
             utteranceStartedWhileSpeaking = speaker.playing
             wakeInUtterance = false
         }
-        if (spotter.accept(frame)) onWake(db)
+        when (spotter.accept(frame)) {
+            Wake.HEARD -> onWake(db, sound, confirmed = false)
+            Wake.CONFIRMED -> onWake(db, sound, confirmed = true)
+            Wake.NONE -> Unit
+        }
         val utterance = segmenter.feed(frame, sound) ?: return
         val startedWhileSpeaking = utteranceStartedWhileSpeaking
         val hadWake = wakeInUtterance
@@ -159,13 +176,17 @@ class Listener(
         route(utterance, now, startedWhileSpeaking && !hadWake)
     }
 
-    private fun onWake(db: Double) {
-        wakeInUtterance = true
+    private fun onWake(db: Double, sound: Boolean, confirmed: Boolean) {
+        val playing = speaker.playing
+        if (playing && !confirmed) return // most likely HAL's own voice
         val active = activeTurn
-        if (active != null && speaker.playing) {
+        if (active != null && playing) {
             speaker.stop() // barge-in: the rest of this utterance becomes the new request
             outbox.send(JSONObject().put("type", "barge_in").put("turn", active))
         }
+        // A final result can land after the utterance has ended; it opens no turn of its own
+        if (!segmenter.inSpeech && !sound) return
+        wakeInUtterance = true
         if (wakeTurn != null || !outbox.connected) return
         val turn = ++nextTurn
         wakeTurn = turn
