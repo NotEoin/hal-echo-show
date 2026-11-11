@@ -5,15 +5,26 @@ All notable changes to hal-echo-show are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-11
+
 ### Added
 
 - A hardware monitor: "Hey Hal, open the hardware monitor" runs btop on the PC and shows it full
   screen in a terminal on the Echo; "close the monitor", a two-second hold, the room going quiet
   or ten minutes bring the eye back. Desk and personal mode only.
 - A third-party notices file, and the Apache 2.0 licence text inside the app.
+- The Echo writes its last crash to the bridge log when it reconnects.
 
 ### Fixed
 
+- Sending a message from the Echo's main thread crashed the app; every send now goes through one
+  writer thread.
+- Commands are recognised in follow-ups ("Hey Hal, open the hardware monitor" after a reply) and
+  with polite openings such as "please" or "open up".
+- Whisper's mishearings of "hardware" ("hard wear", "Harvard") still open the monitor.
+- A screen command or an announcement no longer opens a follow-up window, so a remark such as
+  "nice" afterwards is not sent to the brain.
+- The monitor no longer draws two overlapping frames when the Echo's screen size arrives late.
 - The Android build image builds on GitHub's runners, whose default Docker build network
   cannot resolve DNS.
 
@@ -42,4 +53,5 @@ First release, run end to end on an Echo Show 5 (2019) with LineageOS 18.1.
 - A Hal pack manifest with `echo_say` and `echo_devices`.
 - A Whisper benchmark that runs on the Echo without installing anything.
 
+[0.2.0]: https://github.com/NotEoin/hal-echo-show/releases/tag/v0.2.0
 [0.1.0]: https://github.com/NotEoin/hal-echo-show/releases/tag/v0.1.0

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hal-echo-show"
-version = "0.1.0"
+version = "0.2.0"
 description = "Hal's voice on a jailbroken Echo Show, bridged to your PC over a paired, encrypted link"
 readme = "README.md"
 license = { file = "LICENSE" }

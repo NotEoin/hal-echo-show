@@ -5,4 +5,4 @@ code shown on the device (`pairing`), and the link is TLS 1.3 with both certific
 (`tls`, `server`).
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
