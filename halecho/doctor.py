@@ -7,6 +7,7 @@ import importlib.util
 import shutil
 import socket
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 from . import config, models, sodium
@@ -14,6 +15,8 @@ from .registry import Registry
 
 OK, WARN, FAIL = "ok", "warn", "FAIL"
 STATUS_TIMEOUT_S = 5.0
+# World-readable, unlike `ufw status`, which needs root
+UFW_CONF = Path("/etc/ufw/ufw.conf")
 
 #: One check's outcome: what was checked, its status, and the detail or fix.
 Result = tuple[str, str, str]
@@ -96,13 +99,28 @@ def check_models(settings: Any) -> Iterator[Result]:
             yield f"model {name}", WARN, "downloaded on first request, or run `hal-echo models`"
 
 
+def check_firewall(conf: Path = UFW_CONF) -> Result | None:
+    """Whether ufw is on; None when ufw is not installed."""
+    if not shutil.which("ufw") or not conf.exists():
+        return None
+    enabled = any(line.strip().lower() == "enabled=yes" for line in conf.read_text().splitlines())
+    if enabled:
+        return "firewall", OK, "ufw is on: `hal-echo firewall` prints the rules for each device"
+    return (
+        "firewall",
+        WARN,
+        "ufw is installed but off, so its rules do nothing; see docs/howto/set-up-the-echo.md",
+    )
+
+
 def results(settings: Any) -> list[Result]:
     """Every check, in the order `run` prints them."""
     out = [check_libsodium(), check_hal_voice(), check_identity(), check_devices()]
     out += check_bridge(settings)
     out += check_models(settings)
-    if shutil.which("ufw"):
-        out.append(("firewall", WARN, "ufw is installed: `hal-echo firewall` prints the rules"))
+    firewall = check_firewall()
+    if firewall is not None:
+        out.append(firewall)
     return out
 
 

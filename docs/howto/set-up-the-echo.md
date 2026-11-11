@@ -46,10 +46,15 @@ step says how to undo it.
    ```
 
 6. Let the Echo, and only the Echo, reach the bridge through the PC's firewall. `hal-echo firewall`
-   prints the rules; run them yourself.
+   prints the rules; run them yourself. Rules do nothing while ufw is off, which is Ubuntu's
+   default: check with `sudo ufw status verbose`, and before enabling it with a default of deny,
+   add rules for anything else that must stay reachable (SSH, for example). Without a firewall,
+   the pinned certificates still refuse every other client, and `server.host` can bind the bridge
+   to the LAN address alone.
 
    ```bash
    hal-echo firewall --address 192.168.1.50     # the Echo's reserved address
+   sudo ufw status verbose                      # "Status: active" and "Default: deny (incoming)"
    ```
 
 7. Make the app the home screen, so the eye is what the Echo shows when it starts.
