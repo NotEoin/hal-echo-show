@@ -3,18 +3,29 @@
 All notable changes to hal-echo-show are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.1.0] - 2026-11-11
+
+First release, run end to end on an Echo Show 5 (2019) with LineageOS 18.1.
 
 ### Added
 
-- The PC bridge, `hal-echo`: serves paired Echo Show devices with hal-voice's brain and voice.
-- Pairing with a six-digit code over CPace, then TLS 1.3 with both certificates pinned.
-- The Android app: HAL's eye as the home screen, a loudness gate that idles a quiet room, a Vosk
-  wake word spotter, whisper.cpp speech recognition on the device, barge-in and follow-ups.
-- Desk, personal and home modes; home mode is a stub for Home Assistant.
+- The PC bridge, `hal-echo`: serves paired Echo Show devices with hal-voice's brain and voice, as a
+  systemd user service. `hal-echo doctor` checks libsodium, hal-voice, the port, the models and ufw.
+- Pairing with a six-digit code shown on the Echo, over CPace (draft-irtf-cfrg-cpace-21, checked
+  against its test vectors), then TLS 1.3 with both certificates pinned. Pairing stops after three
+  wrong codes.
+- The Android app: HAL's eye as the home screen from boot, a loudness gate that idles a quiet room,
+  a Vosk wake word spotter, follow-ups without the name, spoken approvals, and tap to stop.
+- Speech recognition on the PC by default (`listener.stt_location: pc`), or Whisper on the Echo
+  (`device`), measured at about 9 s per request on an Echo Show 5.
+- Desk, personal and home modes; personal refuses hal-tools' `desktop` pack at the approval step,
+  and home mode is a stub for Home Assistant.
 - Floor control: when several devices hear one wake word, the loudest answers.
-- Speech models sent from the PC with their SHA-256, and app updates sent over the paired link.
+- Speech models sent from the PC with their SHA-256, and app updates sent over the paired link
+  (`hal-echo push-update`), installed after a tap on the Echo.
+- A speaker EQ for the Echo's small driver, applied to HAL's voice before it is sent.
+- The eye: a film-style lens with a slow resting breath, captions in Geist Mono, and a red wash.
 - A Hal pack manifest with `echo_say` and `echo_devices`.
 - A Whisper benchmark that runs on the Echo without installing anything.
-- A speaker EQ for the Echo's small driver, applied to HAL's voice before it is sent.
-- The eye's captions in Geist Mono and the halvoice tint, with a red wash behind the lens.
+
+[0.1.0]: https://github.com/NotEoin/hal-echo-show/releases/tag/v0.1.0

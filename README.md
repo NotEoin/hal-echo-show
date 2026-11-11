@@ -9,14 +9,16 @@
 
 Turn a jailbroken Echo Show 5 into a room speaker for [hal-voice](https://github.com/NotEoin/hal-voice):
 HAL's red eye on the screen from the moment it boots, listening for its name, answering in HAL's
-voice. The Echo does the listening and speech recognition itself; your PC does the thinking and the
-voice, over an encrypted link that only your paired devices can open.
+voice. The Echo does the listening; your PC does the transcription, the thinking and the voice,
+over an encrypted link that only your paired devices can open.
+
+![HAL's eye on the Echo Show 5](./media/eye.png)
 
 ```
  Echo Show (LineageOS)                                    your PC
  mic -> loudness gate -> "Hal" spotter (Vosk)              hal-echo bridge
-                -> request -> Whisper (whisper.cpp)  ==>   brain (Hal agent, as hal-voice)
- speaker <- eye <------------------------------------ <==   HAL voice (GPT-SoVITS + FX)
+                -> request recording            ==>   faster-whisper -> brain (as hal-voice)
+ speaker <- eye <------------------------------- <==   HAL voice (GPT-SoVITS + FX + speaker EQ)
               TLS 1.3, both certificates pinned at pairing (6-digit code, CPace)
 ```
 
@@ -24,8 +26,8 @@ voice, over an encrypted link that only your paired devices can open.
   each other's certificate. It needs no cable, account or cloud service.
 - **Encrypted and authenticated.** Every byte between the Echo and the PC is TLS 1.3. Nobody else on
   your network can listen in, or pose as either end.
-- **Speech recognition on the Echo.** Whisper runs on the Echo's own CPU, so your PC runs no speech
-  recognition for it. Only the text of what you said to Hal leaves the device.
+- **Only what you say to Hal leaves the device.** The Echo spots "Hal" itself and drops every
+  other sentence unheard; only a request addressed to Hal is sent, over the encrypted link.
 - **Quiet room, idle device.** With nobody talking, the Echo only measures loudness. Any sound
   wakes the wake-word spotter for five minutes, so "Hey Hal" is caught as soon as someone comes in.
 - **Several rooms, one answer.** Put Echos around the house; when two hear the same "Hey Hal", the
@@ -78,7 +80,9 @@ git clone https://github.com/NotEoin/hal-echo-show.git && cd hal-echo-show
 android/build.sh apk       # build and sign the app in Docker (first run: about 10 minutes)
 ```
 
-Then put the app on the Echo, pair it and turn off USB debugging:
+The [release page](https://github.com/NotEoin/hal-echo-show/releases) also has a built APK, but
+`hal-echo push-update` can update only an app signed with your own key, so build your own if you
+plan to update it. Then put the app on the Echo, pair it and turn off USB debugging:
 [Set up the Echo](docs/howto/set-up-the-echo.md). It takes about fifteen minutes and every step can
 be undone.
 
@@ -112,12 +116,11 @@ against (the ROM runs SELinux permissive).
 
 ## Limitations
 
-- **Speech recognition on the Echo is slow.** The Echo's ROM runs a 32-bit kernel on four 1.3 GHz
-  cores. Measured on 2026-11-11 with a 4-second request and a 5-second audio window, Whisper
-  `base.en-q5_1` took 11.2 s including a 2 s model load, about 9 s per request once loaded;
-  `tiny.en` encoded in 3.3 s but stalled in decoding. For a conversation, set
-  `listener.stt_location: pc`: the Echo still idles the room and spots "Hal", and only requests
-  addressed to Hal go to the PC's faster-whisper ([benchmark](docs/howto/benchmark-whisper-on-the-echo.md)).
+- **Speech recognition runs on the PC by default.** Whisper on the Echo itself works
+  (`listener.stt_location: device`) but is slow: the ROM runs a 32-bit kernel on four 1.3 GHz
+  cores, and `base.en-q5_1` took about 9 s per 4-second request once loaded (measured
+  2026-11-11; `tiny.en` stalled in decoding). See the
+  [benchmark](docs/howto/benchmark-whisper-on-the-echo.md).
 - **No echo canceller, so no voice barge-in.** This ROM offers none, so the Echo hears HAL's voice,
   and HAL saying words close to "Hal" stopped his own replies. With `listener.barge_in: auto` the
   Echo ignores its microphones while HAL speaks; tap the eye to stop him.
