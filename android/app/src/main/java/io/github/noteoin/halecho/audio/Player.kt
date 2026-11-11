@@ -2,6 +2,10 @@
  * Plays HAL's voice as it arrives: PCM segments are queued and written to an AudioTrack by
  * one thread, so the link thread never blocks on the speaker. stop() drops the queue at once
  * (barge-in). The level of what is playing drives the eye.
+ *
+ * `playing` stays true until the track's buffer has drained and the room's echo has died away:
+ * a write returns while up to a buffer of audio is still to come out of the speaker, and speech
+ * that starts in that tail is HAL's own voice, not the user's.
  */
 package io.github.noteoin.halecho.audio
 
@@ -23,8 +27,10 @@ class Player(private val onLevel: (Float) -> Unit) : Speaker {
     private var trackRate = 0
     private val thread = Thread(::run, "player").apply { isDaemon = true; start() }
 
+    @Volatile private var drainUntilMs = 0L
+
     override val playing: Boolean
-        get() = writing || queue.isNotEmpty()
+        get() = writing || queue.isNotEmpty() || System.currentTimeMillis() < drainUntilMs
 
     /** Queues one piece of a sentence. */
     fun enqueue(sampleRate: Int, pcm: ShortArray) {
@@ -33,6 +39,7 @@ class Player(private val onLevel: (Float) -> Unit) : Speaker {
 
     override fun stop() {
         generation++
+        drainUntilMs = 0L
         queue.clear()
         track?.pause()
         track?.flush()
@@ -57,6 +64,8 @@ class Player(private val onLevel: (Float) -> Unit) : Speaker {
                 onLevel(rms(chunk.pcm, offset, n))
                 out.write(chunk.pcm, offset, n)
                 offset += n
+                val bufferedMs = out.bufferSizeInFrames * MS_PER_S / chunk.sampleRate
+                drainUntilMs = System.currentTimeMillis() + bufferedMs + ECHO_TAIL_MS
             }
         }
     }
@@ -101,5 +110,7 @@ class Player(private val onLevel: (Float) -> Unit) : Speaker {
         const val BUFFER_MULTIPLE = 4
         const val FULL_SCALE = 32768.0
         const val LEVEL_GAIN = 3.0 // hal-voice's eye uses the same gain on the RMS
+        const val MS_PER_S = 1000L
+        const val ECHO_TAIL_MS = 300L // a living room's reverberation, with margin
     }
 }

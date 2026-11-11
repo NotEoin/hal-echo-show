@@ -84,15 +84,25 @@ data class ListenerSettings(
     val awakeMs: Long = TimeUnit.MINUTES.toMillis(5),
     val followupMs: Long = TimeUnit.SECONDS.toMillis(8),
     val sttOnDevice: Boolean = true,
+    /** Whether "Hal" while HAL speaks stops him; tapping the eye always does. */
+    val bargeIn: Boolean = false,
 ) {
     companion object {
-        /** Reads the `listener` object of a `welcome` message. */
-        fun from(json: JSONObject?): ListenerSettings {
-            json ?: return ListenerSettings()
+        /**
+         * Reads the `listener` object of a `welcome` message. `barge_in: auto` turns voice
+         * barge-in on only with an echo canceller: without one HAL's own voice says "Hal" too.
+         */
+        fun from(json: JSONObject?, echoCanceller: Boolean = false): ListenerSettings {
+            json ?: return ListenerSettings(bargeIn = echoCanceller)
             return ListenerSettings(
                 awakeMs = (json.optDouble("awake_s", 300.0) * 1000).toLong(),
                 followupMs = (json.optDouble("followup_s", 8.0) * 1000).toLong(),
                 sttOnDevice = json.optString("stt_location", "device") != "pc",
+                bargeIn = when (json.optString("barge_in", "auto")) {
+                    "on" -> true
+                    "off" -> false
+                    else -> echoCanceller
+                },
             )
         }
     }
@@ -178,7 +188,7 @@ class Listener(
 
     private fun onWake(db: Double, sound: Boolean, confirmed: Boolean) {
         val playing = speaker.playing
-        if (playing && !confirmed) return // most likely HAL's own voice
+        if (playing && (!settings.bargeIn || !confirmed)) return // most likely HAL's own voice
         val active = activeTurn
         if (active != null && playing) {
             speaker.stop() // barge-in: the rest of this utterance becomes the new request
@@ -278,6 +288,14 @@ class Listener(
                 if (activeTurn == null) activeTurn = turn
             }
         }
+    }
+
+    /** Stops HAL mid-reply, as a tap on the eye asks; does nothing when he is silent. */
+    fun stopSpeaking() = synchronized(lock) {
+        val active = activeTurn ?: return@synchronized
+        if (!speaker.playing) return@synchronized
+        speaker.stop()
+        outbox.send(JSONObject().put("type", "barge_in").put("turn", active))
     }
 
     /** Clears the in-flight turn when the link drops, so the next one starts clean. */

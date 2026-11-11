@@ -141,7 +141,8 @@ class ListenerTest {
     }
 
     @Test
-    fun confirmedWakeWordWhileSpeakingStopsHal() {
+    fun confirmedWakeWordWhileSpeakingStopsHalWhenBargeInIsOn() {
+        listener.configure(ListenerSettings(awakeMs = 10_000, followupMs = 4_000, bargeIn = true))
         settle()
         listener.onMessage(JSONObject().put("type", "say").put("turn", 3))
         playing = true
@@ -151,6 +152,38 @@ class ListenerTest {
         assertTrue(stopped)
         assertTrue(types().containsAll(listOf("barge_in", "wake")))
         assertEquals(3L, sent.first { it.getString("type") == "barge_in" }.getLong("turn"))
+    }
+
+    /** Regression: with no echo canceller, HAL's own voice confidently said "Hal" and stopped him. */
+    @Test
+    fun withoutBargeInEvenAConfirmedWakeWordWhileSpeakingIsIgnored() {
+        settle()
+        listener.onMessage(JSONObject().put("type", "say").put("turn", 9))
+        playing = true
+        wakeKind = Wake.CONFIRMED
+        wakeOnNextSound = true
+        feed(loud, 30)
+        assertFalse(stopped)
+        assertEquals(emptyList<String>(), types())
+    }
+
+    @Test
+    fun tapStopsHalWhileHeSpeaks() {
+        settle()
+        listener.onMessage(JSONObject().put("type", "say").put("turn", 10))
+        playing = true
+        listener.stopSpeaking()
+        assertTrue(stopped)
+        assertEquals(10L, sent.single { it.getString("type") == "barge_in" }.getLong("turn"))
+    }
+
+    @Test
+    fun bargeInAutoFollowsTheEchoCanceller() {
+        val auto = JSONObject().put("barge_in", "auto")
+        assertFalse(ListenerSettings.from(auto, echoCanceller = false).bargeIn)
+        assertTrue(ListenerSettings.from(auto, echoCanceller = true).bargeIn)
+        assertTrue(ListenerSettings.from(JSONObject().put("barge_in", "on")).bargeIn)
+        assertFalse(ListenerSettings.from(JSONObject().put("barge_in", "off"), echoCanceller = true).bargeIn)
     }
 
     /** Regression: HAL's own voice, heard as a partial "Hal", cut his weather reply short. */

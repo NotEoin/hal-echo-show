@@ -118,8 +118,9 @@ against (the ROM runs SELinux permissive).
   `tiny.en` encoded in 3.3 s but stalled in decoding. For a conversation, set
   `listener.stt_location: pc`: the Echo still idles the room and spots "Hal", and only requests
   addressed to Hal go to the PC's faster-whisper ([benchmark](docs/howto/benchmark-whisper-on-the-echo.md)).
-- **No echo canceller.** This ROM offers none, so the Echo hears HAL's voice. Speech that starts
-  while HAL talks is ignored unless it contains "Hal", which stops the reply.
+- **No echo canceller, so no voice barge-in.** This ROM offers none, so the Echo hears HAL's voice,
+  and HAL saying words close to "Hal" stopped his own replies. With `listener.barge_in: auto` the
+  Echo ignores its microphones while HAL speaks; tap the eye to stop him.
 - **Personal mode is enforced at the approval step.** It refuses desktop tools that ask for
   approval. A desktop tool that Hal's policy allows without asking still runs, until Hal can deny a
   pack per channel ([Modes](docs/user/modes.md)).

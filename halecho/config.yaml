@@ -25,6 +25,9 @@ listener:
   wake_model: vosk-small-en
   wake_phrases: ["hey hal", "hal", "okay hal"]
   stt_location: device      # device | pc: pc sends the recorded request to hal-voice's faster-whisper
+  # Whether saying "Hal" while HAL speaks stops him. auto: only on a device with an echo
+  # canceller; without one HAL's own voice triggers it. Tapping the eye always stops him.
+  barge_in: auto            # auto | on | off
 
 floor:
   # Several devices hearing one "Hey Hal": the loudest answers.

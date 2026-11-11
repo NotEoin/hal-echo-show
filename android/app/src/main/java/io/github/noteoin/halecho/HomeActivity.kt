@@ -79,12 +79,15 @@ class HomeActivity : Activity() {
         }
     }
 
-    // The eye answers a two-second hold, not a tap; a tap is passed on as a click
+    // A two-second hold opens the menu; a tap stops HAL mid-reply and is passed on as a click
     private fun onEyeTouch(view: View, event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> handler.postDelayed(openMenu, HOLD_MS)
             MotionEvent.ACTION_UP -> {
                 handler.removeCallbacks(openMenu)
+                if (event.eventTime - event.downTime < HOLD_MS && UiState.speaking) {
+                    HalService.start(this, HalService.ACTION_STOP_SPEAKING)
+                }
                 view.performClick()
             }
             MotionEvent.ACTION_CANCEL -> handler.removeCallbacks(openMenu)

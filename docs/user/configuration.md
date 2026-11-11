@@ -19,6 +19,7 @@ The following table lists the settings you are most likely to change.
 | `listener.followup_s` | `8` | After a reply, how long you can carry on without the name |
 | `listener.stt_model` | `whisper-base.en-q8_0` | The Echo's Whisper model, from `halecho/models.toml` |
 | `listener.stt_location` | `device` | `pc` sends recordings to hal-voice's faster-whisper instead |
+| `listener.barge_in` | `auto` | Whether "Hal" stops HAL mid-reply: `auto` only with an echo canceller (not on the Echo Show 5); a tap on the eye always does |
 | `listener.wake_phrases` | `hey hal`, `hal`, `okay hal` | What the spotter listens for |
 | `floor.window_ms` | `350` | Wake reports this close together count as one, and the loudest answers |
 | `coexist.hal_voice_loop` | `false` | `true` lets hal-voice's own loop run alongside |

@@ -12,6 +12,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.media.audiofx.AcousticEchoCanceler
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -78,6 +79,7 @@ class HalService : Service(), Link.Handler {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP_SPEAKING) listener?.stopSpeaking()
         if (intent?.action == ACTION_REPAIRED) {
             UiState.paired = prefs.paired
             link.stop()
@@ -162,7 +164,7 @@ class HalService : Service(), Link.Handler {
         welcome = msg
         prefs.mode = msg.optString("mode")
         UiState.status = "${msg.optString("device_name")} (${msg.optString("mode")}) on ${msg.optString("server_name")}"
-        listener?.configure(ListenerSettings.from(msg.optJSONObject("listener")))
+        listener?.configure(ListenerSettings.from(msg.optJSONObject("listener"), AcousticEchoCanceler.isAvailable()))
         if (listener == null) prepareModels()
     }
 
@@ -261,7 +263,7 @@ class HalService : Service(), Link.Handler {
                 }
             },
             worker = worker,
-        ).also { it.configure(ListenerSettings.from(settings)) }
+        ).also { it.configure(ListenerSettings.from(settings, AcousticEchoCanceler.isAvailable())) }
         UiState.modelsReady = true
         UiState.status = "Listening"
     }
@@ -280,6 +282,7 @@ class HalService : Service(), Link.Handler {
         private const val CHANNEL = "hal"
         private const val NOTIFICATION_ID = 1
         const val ACTION_REPAIRED = "io.github.noteoin.halecho.REPAIRED"
+        const val ACTION_STOP_SPEAKING = "io.github.noteoin.halecho.STOP_SPEAKING"
 
         fun start(context: Context, action: String? = null) {
             context.startForegroundService(Intent(context, HalService::class.java).setAction(action))
