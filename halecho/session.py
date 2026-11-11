@@ -77,6 +77,9 @@ class SessionClosed(Exception):
 @dataclass
 class _Turn:
     id: int
+    # A conversation invites a reply without the name; a screen command or an announcement
+    # does not, or "nice" said at the monitor becomes a request (seen 2026-11-11)
+    followup: bool = True
     cancelled: threading.Event = field(default_factory=threading.Event)
 
 
@@ -313,7 +316,9 @@ class DeviceSession:
     async def _screen_command(self, turn_id: int, command: str) -> None:
         if command == screens.CLOSE_SCREEN:
             await self._close_screen("asked to close")
-            await self.send({"type": "turn_end", "turn": turn_id, "finished": True})
+            await self.send(
+                {"type": "turn_end", "turn": turn_id, "finished": True, "followup": False}
+            )
             return
         if not screens.allowed(self.settings, self.device.mode):
             self._say_on_turn(turn_id, MONITOR_NOT_HERE)
@@ -338,7 +343,7 @@ class DeviceSession:
 
     def _say_on_turn(self, turn_id: int, line: str) -> None:
         """Speaks a fixed line as the reply to the device's own turn."""
-        turn = _Turn(turn_id)
+        turn = _Turn(turn_id, followup=False)
         self._worker.submit(self._speak_turn, turn, [line])
 
     def _start_turn(self, turn_id: int, request: str) -> None:
@@ -351,7 +356,7 @@ class DeviceSession:
     def say(self, text: str) -> int:
         """Speaks `text` on this device as a turn of its own; returns the turn id."""
         self._next_pc_turn += 1
-        turn = _Turn(PC_TURN_BIT | self._next_pc_turn)
+        turn = _Turn(PC_TURN_BIT | self._next_pc_turn, followup=False)
         self._worker.submit(self._speak_turn, turn, [text])
         return turn.id
 
@@ -407,7 +412,14 @@ class DeviceSession:
             log.error("%s: reply failed: %s", self.device.name, exc)
         finished = not turn.cancelled.is_set()
         self._send_from_thread(
-            frames.encode_json({"type": "turn_end", "turn": turn.id, "finished": finished})
+            frames.encode_json(
+                {
+                    "type": "turn_end",
+                    "turn": turn.id,
+                    "finished": finished,
+                    "followup": finished and turn.followup,
+                }
+            )
         )
 
     def _send_segment(self, turn_id: int, seq: int, text: str, pcm: bytes, sr: int) -> None:

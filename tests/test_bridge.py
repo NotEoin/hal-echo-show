@@ -74,7 +74,7 @@ async def test_addressed_request_is_answered_sentence_by_sentence(bridge, tmp_pa
     second = await device.expect("say")
     end = await device.expect("turn_end")
     assert (first["text"], second["text"]) == ("Good afternoon.", "I am fine.")
-    assert end == {"type": "turn_end", "turn": 7, "finished": True}
+    assert end == {"type": "turn_end", "turn": 7, "finished": True, "followup": True}
     assert bridge.backend.brains[0].asked == ["how are you"]
     assert all(turn == 7 for turn, _, _ in device.audio)
 
@@ -259,6 +259,16 @@ async def test_size_fallback_never_resizes_a_sized_monitor(bridge, tmp_path, mon
     await device.send_raw(frames.encode_term(view["term"], b"still\n"))
     seen += await _term_output(device, b"GOT still")
     assert b"SIZE 80x24" not in seen
+
+
+async def test_screen_command_does_not_invite_a_follow_up(bridge, tmp_path):
+    """Regression: "sick", said at the newly opened monitor, became a request to the brain."""
+    bridge.settings["screens"]["monitor"]["command"] = FAKE_MONITOR
+    device = await _paired(bridge, tmp_path)
+    await device.expect("welcome")
+    await device.send({"type": "utterance", "turn": 1, "text": "Hal, open the hardware monitor"})
+    end = await device.expect("turn_end")
+    assert end["finished"] is True and end["followup"] is False
 
 
 async def test_monitor_is_refused_in_home_mode(bridge, tmp_path):

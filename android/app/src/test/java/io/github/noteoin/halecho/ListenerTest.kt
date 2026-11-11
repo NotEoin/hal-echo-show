@@ -186,6 +186,19 @@ class ListenerTest {
         assertFalse(ListenerSettings.from(JSONObject().put("barge_in", "off"), echoCanceller = true).bargeIn)
     }
 
+    @Test
+    fun turnWithoutFollowUpLeavesSpeechAfterItUnheard() {
+        settle()
+        listener.onMessage(JSONObject().put("type", "say").put("turn", 11))
+        listener.onMessage(
+            JSONObject().put("type", "turn_end").put("turn", 11).put("finished", true).put("followup", false),
+        )
+        feed(quiet, 5)
+        feed(loud, 30)
+        feed(quiet, 40)
+        assertEquals(emptyList<String>(), types())
+    }
+
     /** Regression: HAL's own voice, heard as a partial "Hal", cut his weather reply short. */
     @Test
     fun partialWakeWordWhileSpeakingDoesNotStopHal() {

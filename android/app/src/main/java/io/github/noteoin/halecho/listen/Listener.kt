@@ -284,7 +284,10 @@ class Listener(
             }
             "turn_end" -> {
                 turnEnded = true
-                if (msg.optBoolean("finished", false)) followUntil = Long.MAX_VALUE // set when playback drains
+                // set when playback drains; a bridge without the field means a reply that invites one
+                if (msg.optBoolean("finished", false) && msg.optBoolean("followup", true)) {
+                    followUntil = Long.MAX_VALUE
+                }
                 if (activeTurn == null) activeTurn = turn
             }
         }

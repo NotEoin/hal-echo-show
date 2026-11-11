@@ -41,7 +41,7 @@ The PC sends the following JSON messages.
 | `floor` | `turn`, `granted` | Whether this device answers the wake word it reported |
 | `state` | `state` | `thinking` while the brain works |
 | `say`, `say_end` | `turn`, `seq`, `text`, `sr` | Around the AUDIO frames of one sentence |
-| `turn_end` | `turn`, `finished` or `heard` | The reply is complete, interrupted, or the speech was not for Hal |
+| `turn_end` | `turn`, `finished` or `heard`, `followup` | The reply is complete, interrupted, or the speech was not for Hal; `followup` says whether the next few seconds count as a request without the name (not after a screen command or an announcement) |
 | `listen` | `turn`, `purpose`, `timeout_s` | Record the next utterance: the `request` after a bare "Hal", or an `approval` |
 | `blob_begin`, `blob_end` | `id`, `purpose`, `name`, `size`, `sha256` | Around the BLOB frames of a `model` or an `update` |
 | `pong`, `error` | | Keep-alive reply; a failed request |
