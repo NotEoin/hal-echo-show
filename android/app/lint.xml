@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- lazysodium 5.1.x and its jna are pinned: 5.2.0 ships Java 21 class files -->
+    <issue id="GradleDependency" severity="ignore" />
+    <!-- The app runs on one ARM device; there is no ChromeOS build -->
+    <issue id="ChromeOsAbiSupport" severity="ignore" />
+</lint>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hal</string>
+    <string name="notification_title">Hal is listening for its name</string>
+    <string name="caption_unpaired">Hold the eye for two seconds to pair with your PC</string>
+    <string name="caption_muted">Microphones off</string>
+    <string name="caption_offline">Waiting for the PC</string>
+    <string name="caption_loading">Fetching speech models</string>
+    <string name="menu_pair">Pair with a PC</string>
+    <string name="menu_rename">Rename this device</string>
+    <string name="menu_status">Status</string>
+    <string name="menu_settings">Android settings</string>
+    <string name="rename_title">Device name, as the PC shows it</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="status_title">Status</string>
+    <string name="status_body">%1$s\n\nPC: %2$s at %3$s:%4$d\nMode: %5$s\nPC certificate: %6$s\nThis device: %7$s\nApp %8$s</string>
+    <string name="not_paired">not paired</string>
+    <string name="needs_microphone">Hal needs the microphone permission</string>
+    <string name="pair_title">On the PC, run: hal-echo pair</string>
+    <string name="pair_code">%1$s %2$s</string>
+    <string name="pair_address_hint">PC address, if it is not found</string>
+    <string name="pair_connect">Connect</string>
+    <string name="pair_looking">Looking for the PC&#8230;</string>
+    <string name="pair_not_found">No PC found. Is hal-echo pair running? You can type its address below.</string>
+    <string name="pair_found">Found %1$s. Type the code above on the PC.</string>
+    <string name="pair_retry">%1$s. Try again with the new code.</string>
+    <string name="pair_failed">pairing failed</string>
+    <string name="pair_unreachable">could not reach %1$s: %2$s</string>
+</resources>
