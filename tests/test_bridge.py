@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from halecho import frames, models
+from halecho import frames, models, screens
 from halecho.identity import load_or_create
 from halecho.registry import Registry
 from halecho.server import Bridge, control_request
@@ -243,6 +243,22 @@ async def test_follow_up_that_names_hal_still_opens_the_monitor(bridge, tmp_path
     )
     assert (await device.expect("view"))["name"] == "terminal"
     assert bridge.backend.brains == []
+
+
+async def test_size_fallback_never_resizes_a_sized_monitor(bridge, tmp_path, monkeypatch):
+    """Regression: the 80 x 24 fallback fired after the real size and left a stale frame."""
+    monkeypatch.setattr(screens, "SIZE_WAIT_S", 0.3)
+    bridge.settings["screens"]["monitor"]["command"] = FAKE_MONITOR
+    device = await _paired(bridge, tmp_path)
+    await device.expect("welcome")
+    await device.send({"type": "utterance", "turn": 1, "text": "Hal, open the hardware monitor"})
+    view = await device.expect("view")
+    await device.send({"type": "term_size", "term": view["term"], "cols": 89, "rows": 24})
+    seen = await _term_output(device, b"SIZE 89x24")
+    await asyncio.sleep(0.6)  # past the fallback
+    await device.send_raw(frames.encode_term(view["term"], b"still\n"))
+    seen += await _term_output(device, b"GOT still")
+    assert b"SIZE 80x24" not in seen
 
 
 async def test_monitor_is_refused_in_home_mode(bridge, tmp_path):

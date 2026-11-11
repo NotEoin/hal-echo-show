@@ -92,7 +92,7 @@ class TerminalScreen:
         await self._send_json(
             {"type": "view", "name": "terminal", "term": self.term, "title": self.title}
         )
-        self._timers.append(loop.call_later(SIZE_WAIT_S, self.resize, *DEFAULT_SIZE))
+        self._timers.append(loop.call_later(SIZE_WAIT_S, self._start_if_unsized))
         self._timers.append(loop.call_later(self._timeout_s, self._spawn_close, "timed out"))
 
     def resize(self, cols: int, rows: int) -> None:
@@ -109,6 +109,11 @@ class TerminalScreen:
         except TerminalError as exc:
             log.error("%s", exc)
             self._spawn_close(str(exc))
+
+    def _start_if_unsized(self) -> None:
+        # Only a start: resizing a program that the device already sized shrank it to 80 x 24
+        if not self._started:
+            self.resize(*DEFAULT_SIZE)
 
     def input(self, data: bytes) -> None:
         """Keys and mouse reports from the device, for the program."""
