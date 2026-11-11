@@ -5,12 +5,12 @@ Skipped when pedalboard (a hal-voice dependency) is not installed.
 
 from __future__ import annotations
 
-import numpy as np
 import pytest
 
 pytest.importorskip("pedalboard")
+np = pytest.importorskip("numpy")
 
-from halecho import config, speaker_eq
+from halecho import config, speaker_eq  # noqa: E402 - only after the skip checks
 
 SR = 32000  # GPT-SoVITS's output rate
 
