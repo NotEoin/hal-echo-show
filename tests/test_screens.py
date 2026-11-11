@@ -23,6 +23,8 @@ FAKE_MONITOR = [sys.executable, str(Path(__file__).parent / "fakes" / "fake_moni
         "launch my PC monitor",
         "open up the hardware monitor, please",  # heard on the device, 2026-11-11
         "can you open the hardware monitor",
+        "open the Harvard Monitor, please",  # Whisper's hearing of "hardware", 2026-11-11
+        "show the hard wear monitor",
     ],
 )
 def test_open_phrases_open_the_monitor(request_text):

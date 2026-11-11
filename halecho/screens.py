@@ -22,7 +22,9 @@ log = logging.getLogger(__name__)
 OPEN_MONITOR = "open_monitor"
 CLOSE_SCREEN = "close_screen"
 
-_MONITOR = r"(?:hardware|system|resource|performance|computer|pc)\s+monitor"
+# Whisper hears "hardware" as "Harvard" (2026-11-11) or splits it; those count too
+_HARDWARE = r"(?:hardware|hard\s*wear|hard\s+ware|harvard)"
+_MONITOR = rf"(?:{_HARDWARE}|system|resource|performance|computer|pc)\s+monitor"
 # "can you", "could you" and "please" in front are politeness, not part of the command
 _POLITE = r"^(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?"
 _OPEN = re.compile(
