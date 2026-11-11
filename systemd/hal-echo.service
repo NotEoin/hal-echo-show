@@ -1,0 +1,19 @@
+[Unit]
+# `hal off` stops this unit and keeps it from starting until `hal on` (Hal's X-HalOff marker)
+X-HalOff=yes
+Description=Hal on the Echo Show devices: the PC bridge
+PartOf=hal.target
+After=hal-tts.service network-online.target
+Wants=hal-tts.service
+
+[Service]
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/.venv/bin/hal-echo serve
+# The bridge closes its connections and the brains' child processes on SIGINT
+KillSignal=SIGINT
+TimeoutStopSec=15
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

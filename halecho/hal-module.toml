@@ -1,0 +1,51 @@
+schema = 2
+
+[module]
+name = "echo"
+summary = "Speak through the Echo Show devices paired with hal-echo-show"
+pack = "echo"
+# {root} is this manifest's directory; its parent is the checkout with the .venv
+exec = ["{root}/../.venv/bin/python", "-m", "halecho.hubtool"]
+protocol = "oneshot"
+
+[[install]]
+id = "setup"
+summary = "Build the bridge's virtualenv next to a hal-voice checkout"
+run = ["{root}/../setup-pc.sh", "--yes"]
+timeout = 1800
+network = true
+
+[[tools]]
+name = "echo_say"
+function = "say"
+description = "Say a line aloud in HAL's voice on one Echo Show, or on all of them. Fails if the bridge is not running."
+keywords = "say speak announce aloud echo room speaker kitchen bedroom"
+timeout = 120
+# Other people in the room hear it, as with voice_say
+tier = "act"
+network = false
+untrusted_output = false
+reviewable = true
+reversible = true
+[tools.params.text]
+type = "string"
+description = "what to say"
+required = true
+max_length = 500
+[tools.params.device]
+type = "string"
+description = "the device's name, as `hal-echo devices` lists it; leave out to speak on all"
+required = false
+max_length = 40
+
+[[tools]]
+name = "echo_devices"
+function = "devices"
+description = "List the paired Echo Show devices, their modes, and which are connected."
+keywords = "echo devices rooms speakers list status"
+timeout = 30
+tier = "read"
+network = false
+untrusted_output = false
+reviewable = true
+reversible = true
