@@ -14,8 +14,8 @@ android {
         // LineageOS 18.1 for the Echo Show 5 is Android 11
         minSdk = 30
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0-dev"
         ndk {
             // The MT8163 is ARMv8; which ABI the ROM's userspace runs is checked on the device
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
