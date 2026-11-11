@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import frames, models
+from . import frames, models, screens
 from .backend import Backend, Brain
 from .floor import Floor
 from .registry import Device
@@ -42,6 +42,8 @@ SENTENCE_ENDERS = ".!?\n"
 MIN_SENTENCE_CHARS = 2  # "Mr." alone is not a sentence boundary worth a breath
 
 TOO_LONG = "That took too long."
+MONITOR_OPEN = "Here is the hardware monitor."
+MONITOR_NOT_HERE = "The hardware monitor is not available in this room."
 UNAVAILABLE = "My brain is not available."
 
 
@@ -111,6 +113,8 @@ class DeviceSession:
         self._next_pc_turn = 0
         self._next_transfer = 0
         self.closed = asyncio.Event()
+        self._screen: screens.TerminalScreen | None = None
+        self._next_term = 0
         self._gone = threading.Event()  # `closed`, readable from the turn thread
 
     # -- sending -----------------------------------------------------------------
@@ -154,6 +158,11 @@ class DeviceSession:
                     if turn in self._audio:
                         self._audio[turn] += pcm
                     continue
+                if frame.kind == frames.TERM:
+                    term, data = frame.term()
+                    if self._screen is not None and self._screen.term == term:
+                        self._screen.input(data)
+                    continue
                 await self._dispatch(frame.json())
         except (asyncio.IncompleteReadError, ConnectionError):
             # A device going away (power cut, Wi-Fi drop) is normal; it reconnects on its own
@@ -177,6 +186,8 @@ class DeviceSession:
             "need_model": self._on_need_model,
             "update_result": self._on_update_result,
             "ping": self._on_ping,
+            "term_size": self._on_term_size,
+            "term_close": self._on_term_close,
         }.get(kind)
         if handler is None:
             log.warning("%s sent an unknown message '%s'", self.device.name, kind)
@@ -246,6 +257,16 @@ class DeviceSession:
     async def _on_state(self, msg: dict[str, Any]) -> None:
         self.muted = bool(msg.get("muted", self.muted))
         self.awake = bool(msg.get("awake", self.awake))
+        if not self.awake:
+            await self._close_screen("the room went quiet")
+
+    async def _on_term_size(self, msg: dict[str, Any]) -> None:
+        if self._screen is not None and self._screen.term == int(msg.get("term", -1)):
+            self._screen.resize(int(msg["cols"]), int(msg["rows"]))
+
+    async def _on_term_close(self, msg: dict[str, Any]) -> None:
+        if self._screen is not None and self._screen.term == int(msg.get("term", -1)):
+            await self._close_screen("closed on the device")
 
     async def _on_need_model(self, msg: dict[str, Any]) -> None:
         name = str(msg.get("name", ""))
@@ -280,7 +301,43 @@ class DeviceSession:
             # "Hal" alone: the next utterance is the request
             await self.send({"type": "listen", "turn": turn_id, "purpose": "request"})
             return
+        command = screens.match(request)
+        if command is not None:
+            await self._screen_command(turn_id, command)
+            return
         self._start_turn(turn_id, request)
+
+    # -- screens -------------------------------------------------------------------
+    async def _screen_command(self, turn_id: int, command: str) -> None:
+        if command == screens.CLOSE_SCREEN:
+            await self._close_screen("asked to close")
+            await self.send({"type": "turn_end", "turn": turn_id, "finished": True})
+            return
+        if not screens.allowed(self.settings, self.device.mode):
+            self._say_on_turn(turn_id, MONITOR_NOT_HERE)
+            return
+        if self._screen is None or self._screen.closed.is_set():
+            self._next_term += 1
+            self._screen = screens.TerminalScreen(
+                self._next_term,
+                list(self.settings.get("screens.monitor.command")),
+                str(self.settings.get("screens.monitor.title")),
+                self.send,
+                self.send_raw,
+                float(self.settings.get("screens.monitor.timeout_s")),
+            )
+            await self._screen.open()
+        self._say_on_turn(turn_id, MONITOR_OPEN)
+
+    async def _close_screen(self, reason: str, notify: bool = True) -> None:
+        screen, self._screen = self._screen, None
+        if screen is not None:
+            await screen.close(reason, notify)
+
+    def _say_on_turn(self, turn_id: int, line: str) -> None:
+        """Speaks a fixed line as the reply to the device's own turn."""
+        turn = _Turn(turn_id)
+        self._worker.submit(self._speak_turn, turn, [line])
 
     def _start_turn(self, turn_id: int, request: str) -> None:
         if self._turn is not None:
@@ -415,6 +472,7 @@ class DeviceSession:
         await self.send({"type": "blob_end", "id": transfer})
 
     async def _close(self) -> None:
+        await self._close_screen("the device disconnected", notify=False)
         if self._turn is not None:
             self._turn.cancelled.set()
         if self._approval is not None and not self._approval.done():

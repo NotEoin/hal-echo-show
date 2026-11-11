@@ -28,6 +28,12 @@ def test_audio_frame_bytes_are_pinned():
     )
 
 
+def test_term_frame_bytes_are_pinned():
+    assert frames.encode_term(5, b"\x1b[") == b"\x00\x00\x00\x06\x04" + bytes(
+        [0, 0, 0, 5, 0x1B, 0x5B]
+    )
+
+
 def test_json_is_ascii_escaped():
     assert b"\\u2014" in frames.encode_json({"type": "say", "text": "\u2014"})
 

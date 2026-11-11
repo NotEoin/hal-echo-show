@@ -4,7 +4,8 @@
  *     frame = length (u32, big endian) | kind (u8) | payload
  *
  * JSON frames carry one message object, AUDIO frames a turn id, a sequence number and 16-bit
- * little-endian mono PCM, BLOB frames a transfer id and file bytes. FramesTest pins the bytes
+ * little-endian mono PCM, BLOB frames a transfer id and file bytes, TERM frames a terminal id and
+ * the bytes of a terminal screen in either direction. FramesTest pins the bytes
  * against the Python tests.
  */
 package io.github.noteoin.halecho.net
@@ -19,6 +20,7 @@ object Frames {
     const val JSON = 1
     const val AUDIO = 2
     const val BLOB = 3
+    const val TERM = 4
     const val HEADER_BYTES = 5
     const val ID_BYTES = 4
 
@@ -38,7 +40,7 @@ object Frames {
             return msg
         }
 
-        /** The turn id of an AUDIO frame, or the transfer id of a BLOB frame. */
+        /** The turn id of an AUDIO frame, or the id of a BLOB or TERM frame. */
         fun id(): Long {
             if (payload.size < ID_BYTES) throw FrameError("frame too short for an id")
             return ByteBuffer.wrap(payload, 0, ID_BYTES).int.toLong() and 0xFFFF_FFFFL
@@ -47,7 +49,7 @@ object Frames {
         /** Where the PCM of an AUDIO frame starts in [payload]. */
         val audioOffset: Int get() = 2 * ID_BYTES
 
-        /** Where the bytes of a BLOB frame start in [payload]. */
+        /** Where the bytes of a BLOB or TERM frame start in [payload]. */
         val blobOffset: Int get() = ID_BYTES
     }
 
@@ -73,11 +75,15 @@ object Frames {
         return encode(AUDIO, body.array())
     }
 
+    /** A TERM frame: a terminal's id and some of its bytes. */
+    fun encodeTerm(term: Long, data: ByteArray): ByteArray =
+        encode(TERM, ByteBuffer.allocate(ID_BYTES + data.size).putInt(term.toInt()).put(data).array())
+
     /** Reads one frame; throws [java.io.EOFException] when the peer closes. */
     fun read(input: DataInputStream): Frame {
         val length = input.readInt()
         val kind = input.readUnsignedByte()
-        if (kind !in JSON..BLOB) throw FrameError("unknown frame kind $kind")
+        if (kind !in JSON..TERM) throw FrameError("unknown frame kind $kind")
         if (length < 0 || length > MAX_PAYLOAD) throw FrameError("payload of $length bytes")
         val payload = ByteArray(length)
         input.readFully(payload)

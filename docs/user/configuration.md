@@ -22,6 +22,9 @@ The following table lists the settings you are most likely to change.
 | `listener.barge_in` | `auto` | Whether "Hal" stops HAL mid-reply: `auto` only with an echo canceller (not on the Echo Show 5); a tap on the eye always does |
 | `listener.wake_phrases` | `hey hal`, `hal`, `okay hal` | What the spotter listens for |
 | `speaker_eq.*` | on | EQ for the Echo's small speaker: cuts below `highpass_hz` (150), trims `mud_hz` (350), lifts `presence_hz` (3500) and `air_hz` (8000); `hal-echo say` plays a line to compare |
+| `screens.monitor.command` | `[btop]` | The program the hardware monitor runs on the PC |
+| `screens.monitor.modes` | `[desk, personal]` | Modes that may open it; not home, since the process list is private |
+| `screens.monitor.timeout_s` | `600` | The eye comes back after this long |
 | `floor.window_ms` | `350` | Wake reports this close together count as one, and the loudest answers |
 | `coexist.hal_voice_loop` | `false` | `true` lets hal-voice's own loop run alongside |
 | `modes.personal.denied_packs` | `[desktop]` | Packs personal mode refuses |

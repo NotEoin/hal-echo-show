@@ -36,6 +36,8 @@ over an encrypted link that only your paired devices can open.
   nearer one answers.
 - **Three modes.** `desk` replaces hal-voice at your desk, `personal` is a private room without the
   desktop tools, and `home` is a shared room (Home Assistant, a stub for now).
+- **A hardware monitor on demand.** "Hey Hal, open the hardware monitor" shows btop, running on
+  your PC, in a terminal on the Echo; "close the monitor" brings the eye back.
 
 ## Part of the Hal suite
 
@@ -102,6 +104,8 @@ hal-echo unpair Kitchen                          # its certificate stops working
 ```
 
 On the Echo, hold the eye for two seconds for the menu: pair, rename, status, or Android's settings.
+Say "Hey Hal, open the hardware monitor" for btop from the PC (desk and personal mode); tap the
+small eye beside it, or say "close the monitor", to go back.
 
 ## Configuration
 
@@ -148,7 +152,5 @@ The [docs index](docs/README.md) lists every page.
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE). The speech models the bridge downloads keep their own licences:
-Whisper weights are MIT, the Vosk model Apache 2.0. The app bundles the Geist Mono font
-(c) 2023 Vercel, under the SIL Open Font License 1.1, whose text ships with it in
-`android/app/src/main/assets/licenses/geist-mono-OFL.txt`.
+MIT, see [LICENSE](LICENSE). The app bundles libraries and a font under their own licences, and
+the bridge downloads speech models under theirs: see [THIRD-PARTY.md](THIRD-PARTY.md).

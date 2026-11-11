@@ -14,3 +14,4 @@ These pages cover using hal-echo-show, setting it up, and how it works inside.
 | [dev/protocol.md](dev/protocol.md) | The frames and messages between the Echo and the PC |
 | [dev/pairing.md](dev/pairing.md) | The pairing exchange and the pinned TLS link |
 | [../SECURITY.md](../SECURITY.md) | The threat model and how to report a problem |
+| [../THIRD-PARTY.md](../THIRD-PARTY.md) | The libraries, font and models the project uses, and their licences |

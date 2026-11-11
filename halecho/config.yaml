@@ -45,6 +45,15 @@ speaker_eq:
   air_hz: 8000
   air_gain_db: 2.0
 
+screens:
+  # "Hey Hal, open the hardware monitor": this program runs on the PC, in a terminal shown on
+  # the device that asked. The device can open only what is named here.
+  monitor:
+    command: [btop]
+    modes: [desk, personal]   # not home: the process list is private
+    timeout_s: 600            # the eye comes back after this long, against burn-in
+    title: Hardware monitor
+
 floor:
   # Several devices hearing one "Hey Hal": the loudest answers.
   window_ms: 350            # wake reports this close together count as one

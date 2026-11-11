@@ -8,6 +8,7 @@ frame = length (u32, big endian) | kind (u8) | payload (length bytes, at most 1 
 kind 1  JSON   one UTF-8 JSON object with a "type"
 kind 2  AUDIO  turn id (u32) | sequence (u32) | 16-bit little-endian mono PCM
 kind 3  BLOB   transfer id (u32) | file bytes
+kind 4  TERM   terminal id (u32) | bytes: a program's output, or keys and mouse reports for it
 ```
 
 ## Messages from the device
@@ -26,6 +27,8 @@ The device sends the following JSON messages.
 | `need_model` | `name` | Send this model |
 | `update_result` | `ok`, `message` | What Android's installer said |
 | `ping` | `t` | Keep-alive, every 20 s |
+| `term_size` | `term`, `cols`, `rows` | The terminal screen's size in cells; the program starts at it, or is resized |
+| `term_close` | `term` | The terminal was closed on the device (the small eye was tapped) |
 
 ## Messages from the PC
 
@@ -41,8 +44,10 @@ The PC sends the following JSON messages.
 | `listen` | `turn`, `purpose`, `timeout_s` | Record the next utterance: the `request` after a bare "Hal", or an `approval` |
 | `blob_begin`, `blob_end` | `id`, `purpose`, `name`, `size`, `sha256` | Around the BLOB frames of a `model` or an `update` |
 | `pong`, `error` | | Keep-alive reply; a failed request |
+| `view` | `name`, `term`, `title` | Show a `terminal` screen fed by TERM frames, or the `eye` again |
 
-Turn ids come from the device. A turn the PC starts itself (`hal-echo say`) sets the top bit.
+A terminal screen runs a program the bridge's settings name (`screens.monitor.command`); the
+device can show it and type into it, but cannot choose what runs. Turn ids come from the device. A turn the PC starts itself (`hal-echo say`) sets the top bit.
 
 ## A turn
 

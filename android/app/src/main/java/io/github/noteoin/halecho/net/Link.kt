@@ -56,6 +56,9 @@ class Link(
 
     override fun sendAudio(turn: Long, pcm: ShortArray) = write(Frames.encodeAudio(turn, 0, pcm))
 
+    /** Keys and touches for a terminal screen. */
+    fun sendTerm(term: Long, data: ByteArray) = write(Frames.encodeTerm(term, data))
+
     private fun write(frame: ByteArray) {
         val stream = out ?: return
         try {

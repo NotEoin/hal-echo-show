@@ -18,6 +18,12 @@ class FramesTest {
     }
 
     @Test
+    fun termFrameBytesMatchThePc() {
+        val frame = Frames.encodeTerm(5, byteArrayOf(0x1b, 0x5b))
+        assertArrayEquals(byteArrayOf(0, 0, 0, 6, 4, 0, 0, 0, 5, 0x1b, 0x5b), frame)
+    }
+
+    @Test
     fun jsonFrameRoundTrips() {
         val bytes = Frames.encodeJson(JSONObject().put("type", "ping").put("t", 1))
         val frame = Frames.read(DataInputStream(ByteArrayInputStream(bytes)))

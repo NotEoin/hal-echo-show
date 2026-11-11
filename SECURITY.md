@@ -21,6 +21,7 @@ The design assumes an attacker on your home network.
 | Other machines reaching the bridge | The handshake refuses unpaired certificates; `hal-echo firewall` adds rules for the Echo's address only. |
 | A tampered model or update | Models are checked against the SHA-256 in `halecho/models.toml`; Android installs an update only if it is signed with the installed app's key, and only after a tap. |
 | Other local users on the PC | The PC's key, the device list and the control socket are readable by the owner only. |
+| A device running programs on the PC | A device can open only the screens the bridge's settings name (`screens.monitor.command`), and only in the modes listed there; it can type into that program but cannot start another. |
 
 ## What it does not protect against
 

@@ -15,6 +15,7 @@ The bridge's modules divide the work as follows.
 | `pairing`, `cpace`, `sodium` | The pairing exchange; ristretto255 from the system libsodium |
 | `tls`, `identity`, `registry` | The PC's key and certificate, the paired devices, the pinned TLS context |
 | `floor` | Chooses one device when several hear the same wake word |
+| `screens`, `terminal` | Screen commands matched before the brain; a program in a pseudo-terminal, streamed as TERM frames |
 | `modes`, `homeassistant` | The brain for each mode; the Home Assistant stub |
 | `backend` | The only module that imports hal-voice: brains, voice, GPU sharing, faster-whisper |
 | `models` | The speech-model catalogue (`models.toml`) and its checked download cache |
@@ -45,6 +46,7 @@ The app's classes divide the work as follows.
 | `net.Frames`, `net.BlobReceiver` | The wire format; models and updates, hash-checked |
 | `crypto.CPace`, `crypto.Pairing`, `crypto.DeviceIdentity` | Pairing; the Keystore key |
 | `HomeActivity`, `PairActivity`, `ui.EyeView` | The eye, the menu, the pairing screen |
+| `ui.RemoteTerminalView`, `ui.TerminalBus` | A terminal fed from the PC through Termux's emulator and renderer; the hand-off between service and screen |
 | `update.Updater` | Installs an update the PC sent, after a tap |
 
 Design points:

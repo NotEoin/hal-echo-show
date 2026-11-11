@@ -2,6 +2,10 @@
  * The home screen: Hal's eye, full screen, from boot. Holding the eye for two seconds opens a
  * menu to pair, rename the device, see the link's status, or open Android's settings (the way
  * back to the stock launcher). The screen dims while the room is asleep.
+ *
+ * When the PC opens a terminal screen (the hardware monitor) it takes the screen, with a small
+ * eye in a strip beside it that still shows Hal listening and speaking; tapping that eye closes
+ * the terminal.
  */
 package io.github.noteoin.halecho
 
@@ -20,11 +24,21 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.graphics.Color
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.LinearLayout
 import io.github.noteoin.halecho.crypto.DeviceIdentity
 import io.github.noteoin.halecho.ui.EyeView
+import io.github.noteoin.halecho.ui.RemoteTerminalView
+import io.github.noteoin.halecho.ui.TerminalBus
 
-class HomeActivity : Activity() {
+class HomeActivity : Activity(), TerminalBus.Screen {
+    private lateinit var eye: EyeView
+    private lateinit var terminalRow: LinearLayout
+    private lateinit var terminal: RemoteTerminalView
+    private var shownTerm = -1L
     private val handler = Handler(Looper.getMainLooper())
     private val openMenu = Runnable { showMenu() }
     private val dimmer = object : Runnable {
@@ -47,9 +61,27 @@ class HomeActivity : Activity() {
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val eye = EyeView(this)
+        eye = EyeView(this)
         eye.setOnTouchListener { view, event -> onEyeTouch(view, event) }
-        setContentView(eye)
+        terminal = RemoteTerminalView(this, TerminalBus.main)
+        val miniEye = EyeView(this, compact = true).apply {
+            setOnClickListener { if (shownTerm >= 0) TerminalBus.main.uplink?.close(shownTerm) }
+        }
+        val strip = (MINI_EYE_DP * resources.displayMetrics.density).toInt()
+        terminalRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundColor(Color.BLACK)
+            visibility = View.GONE
+            addView(terminal, LinearLayout.LayoutParams(0, MATCH_PARENT, 1f))
+            addView(miniEye, LinearLayout.LayoutParams(strip, strip))
+        }
+        setContentView(
+            FrameLayout(this).apply {
+                addView(eye, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+                addView(terminalRow, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            },
+        )
+        TerminalBus.main.attach(this)
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             HalService.start(this)
         } else {
@@ -69,6 +101,28 @@ class HomeActivity : Activity() {
     override fun onPause() {
         handler.removeCallbacks(dimmer)
         super.onPause()
+    }
+
+    override fun onDestroy() {
+        TerminalBus.main.detach(this)
+        super.onDestroy()
+    }
+
+    override fun show(term: Long, title: String) {
+        shownTerm = term
+        terminal.start(term)
+        terminalRow.visibility = View.VISIBLE
+        eye.visibility = View.GONE
+    }
+
+    override fun output(term: Long, data: ByteArray) {
+        if (term == shownTerm) terminal.append(data)
+    }
+
+    override fun hide() {
+        shownTerm = -1L
+        terminalRow.visibility = View.GONE
+        eye.visibility = View.VISIBLE
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, results: IntArray) {
@@ -144,6 +198,7 @@ class HomeActivity : Activity() {
         const val HOLD_MS = 2000L
         const val DIM_CHECK_MS = 1000L
         const val ASLEEP_BRIGHTNESS = 0.05f
+        const val MINI_EYE_DP = 56
         const val FINGERPRINT_CHARS = 16 // the length `hal-echo devices` and mDNS show
     }
 }

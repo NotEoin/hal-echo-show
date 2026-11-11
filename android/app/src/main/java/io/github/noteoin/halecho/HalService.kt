@@ -31,6 +31,7 @@ import io.github.noteoin.halecho.net.Frames
 import io.github.noteoin.halecho.net.Link
 import io.github.noteoin.halecho.stt.VoskSpotter
 import io.github.noteoin.halecho.stt.Whisper
+import io.github.noteoin.halecho.ui.TerminalBus
 import io.github.noteoin.halecho.update.Updater
 import org.json.JSONArray
 import org.json.JSONObject
@@ -67,6 +68,15 @@ class HalService : Service(), Link.Handler {
         models = ModelStore(File(filesDir, "models"))
         blobs = BlobReceiver(File(cacheDir, "incoming"), ::onBlob)
         link = Link(prefs, Discovery(this), this, ::hello)
+        TerminalBus.main.uplink = object : TerminalBus.Uplink {
+            override fun input(term: Long, data: ByteArray) = link.sendTerm(term, data)
+            override fun size(term: Long, cols: Int, rows: Int) {
+                link.send(JSONObject().put("type", "term_size").put("term", term).put("cols", cols).put("rows", rows))
+            }
+            override fun close(term: Long) {
+                link.send(JSONObject().put("type", "term_close").put("term", term))
+            }
+        }
         Updater.report = { ok, message ->
             link.send(JSONObject().put("type", "update_result").put("ok", ok).put("message", message))
         }
@@ -124,12 +134,17 @@ class HalService : Service(), Link.Handler {
         synchronized(requested) { requested.clear() }
         player.stop()
         listener?.onDisconnected()
+        TerminalBus.main.hide(null) // the PC ends its program when the link drops
     }
 
     override fun onFrame(frame: Frames.Frame) {
         when (frame.kind) {
             Frames.AUDIO -> onAudio(frame)
             Frames.BLOB -> runCatching { blobs.chunk(frame) }.onFailure { Log.e(TAG, "transfer failed", it) }
+            Frames.TERM -> TerminalBus.main.output(
+                frame.id(),
+                frame.payload.copyOfRange(frame.blobOffset, frame.payload.size),
+            )
             Frames.JSON -> onMessage(frame.json())
         }
     }
@@ -156,6 +171,10 @@ class HalService : Service(), Link.Handler {
             "blob_begin" -> runCatching { blobs.begin(msg) }.onFailure { Log.e(TAG, "transfer refused", it) }
             "blob_end" -> runCatching { blobs.end(msg) }.onFailure { Log.e(TAG, "transfer failed", it) }
             "error" -> Log.w(TAG, "the PC reports: ${msg.optString("message")}")
+            "view" -> when (msg.optString("name")) {
+                "terminal" -> TerminalBus.main.open(msg.getLong("term"), msg.optString("title"))
+                else -> TerminalBus.main.hide(msg.optLong("term"))
+            }
         }
         listener?.onMessage(msg)
     }

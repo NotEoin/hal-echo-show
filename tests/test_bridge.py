@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import ssl
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -199,3 +201,67 @@ async def test_home_mode_does_not_wait_for_gpu_room(bridge, tmp_path):
     await device.send({"type": "utterance", "turn": 1, "text": "Hal, lights"})
     await device.expect("turn_end")
     assert bridge.backend.turns == 0
+
+
+FAKE_MONITOR = [sys.executable, str(Path(__file__).parent / "fakes" / "fake_monitor.py")]
+
+
+async def _term_output(device: FakeDevice, marker: bytes, timeout: float = 5.0) -> bytes:
+    seen = b""
+    while marker not in seen:
+        frame = await device.frame(timeout)
+        if frame.kind == frames.TERM:
+            seen += frame.term()[1]
+    return seen
+
+
+async def test_hardware_monitor_opens_streams_takes_input_and_closes(bridge, tmp_path):
+    bridge.settings["screens"]["monitor"]["command"] = FAKE_MONITOR
+    device = await _paired(bridge, tmp_path)
+    await device.expect("welcome")
+    await device.send({"type": "utterance", "turn": 1, "text": "Hal, open the hardware monitor"})
+    view = await device.expect("view")
+    assert view["name"] == "terminal" and view["title"] == "Hardware monitor"
+    await device.send({"type": "term_size", "term": view["term"], "cols": 96, "rows": 26})
+    assert b"SIZE 96x26" in await _term_output(device, b"SIZE 96x26")
+    await device.send_raw(frames.encode_term(view["term"], b"tap\n"))
+    await _term_output(device, b"GOT tap")
+    screen = bridge.sessions[next(iter(bridge.sessions))]._screen
+    await device.send({"type": "utterance", "turn": 2, "text": "Hal, close the monitor"})
+    closed = await device.expect("view")
+    assert closed == {"type": "view", "name": "eye", "term": view["term"]}
+    assert not screen._proc.running
+
+
+async def test_monitor_is_refused_in_home_mode(bridge, tmp_path):
+    device = await _paired(bridge, tmp_path, mode="home")
+    await device.expect("welcome")
+    await device.send({"type": "utterance", "turn": 1, "text": "Hal, open the hardware monitor"})
+    say = await device.expect("say")
+    assert "not available" in say["text"]
+
+
+async def test_monitor_closes_when_the_room_goes_quiet(bridge, tmp_path):
+    bridge.settings["screens"]["monitor"]["command"] = FAKE_MONITOR
+    device = await _paired(bridge, tmp_path)
+    await device.expect("welcome")
+    await device.send({"type": "utterance", "turn": 1, "text": "Hal, show the system monitor"})
+    view = await device.expect("view")
+    await device.send({"type": "term_size", "term": view["term"], "cols": 80, "rows": 24})
+    await _term_output(device, b"SIZE 80x24")
+    await device.send({"type": "state", "awake": False, "muted": False})
+    assert (await device.expect("view"))["name"] == "eye"
+
+
+async def test_disconnect_ends_the_monitor_program(bridge, tmp_path):
+    bridge.settings["screens"]["monitor"]["command"] = FAKE_MONITOR
+    device = await _paired(bridge, tmp_path)
+    await device.expect("welcome")
+    await device.send({"type": "utterance", "turn": 1, "text": "Hal, open the hardware monitor"})
+    view = await device.expect("view")
+    await device.send({"type": "term_size", "term": view["term"], "cols": 80, "rows": 24})
+    await _term_output(device, b"SIZE 80x24")
+    screen = bridge.sessions[next(iter(bridge.sessions))]._screen
+    await device.close()
+    await asyncio.wait_for(screen.closed.wait(), 5)
+    assert not screen._proc.running

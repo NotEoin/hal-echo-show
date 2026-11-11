@@ -3,6 +3,20 @@
 All notable changes to hal-echo-show are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- A hardware monitor: "Hey Hal, open the hardware monitor" runs btop on the PC and shows it in a
+  terminal on the Echo, with a small eye beside it; "close the monitor", a tap on that eye, the
+  room going quiet or ten minutes bring the eye back. Desk and personal mode only.
+- A third-party notices file, and the Apache 2.0 licence text inside the app.
+
+### Fixed
+
+- The Android build image builds on GitHub's runners, whose default Docker build network
+  cannot resolve DNS.
+
 ## [0.1.0] - 2026-11-11
 
 First release, run end to end on an Echo Show 5 (2019) with LineageOS 18.1.

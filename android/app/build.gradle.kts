@@ -78,6 +78,8 @@ android {
 
 dependencies {
     implementation("com.alphacephei:vosk-android:0.3.75")
+    // Apache 2.0, unlike the rest of the Termux app: the emulator and its renderer only
+    implementation("com.github.termux.termux-app:terminal-view:v0.118.3")
     // 5.1.x: 5.2.0 is built for Java 21 class files; both have ristretto255
     implementation("com.goterl:lazysodium-android:5.1.0@aar")
     implementation("net.java.dev.jna:jna:5.12.1@aar")

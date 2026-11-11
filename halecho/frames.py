@@ -1,11 +1,13 @@
-"""The wire format shared with the Android app: length-prefixed frames of three kinds.
+"""The wire format shared with the Android app: length-prefixed frames of four kinds.
 
     frame = length (u32, big endian) | kind (u8) | payload (length bytes)
 
 - `JSON`: one UTF-8 JSON object with a `type` key (the messages are listed in
   `docs/dev/protocol.md`);
 - `AUDIO`: turn id (u32) | sequence (u32) | 16-bit little-endian mono PCM;
-- `BLOB`: transfer id (u32) | file bytes, for models and app updates.
+- `BLOB`: transfer id (u32) | file bytes, for models and app updates;
+- `TERM`: terminal id (u32) | bytes: a program's output to the device, or the device's touches
+  and keys back to the program, for the terminal screens.
 
 `Frames.kt` in the app is the other implementation; `tests/test_frames.py` pins the bytes.
 """
@@ -24,8 +26,8 @@ BLOB_HEADER = struct.Struct(">I")
 # 30 s of 16 kHz PCM16 is 960 KB, the longest utterance a device sends in one frame
 MAX_PAYLOAD = 1 << 20
 
-JSON, AUDIO, BLOB = 1, 2, 3
-KINDS = (JSON, AUDIO, BLOB)
+JSON, AUDIO, BLOB, TERM = 1, 2, 3, 4
+KINDS = (JSON, AUDIO, BLOB, TERM)
 
 
 class FrameError(ValueError):
@@ -69,6 +71,13 @@ class Frame:
         (transfer,) = BLOB_HEADER.unpack_from(self.payload)
         return transfer, self.payload[BLOB_HEADER.size :]
 
+    def term(self) -> tuple[int, bytes]:
+        """The terminal id and bytes of a `TERM` frame."""
+        if self.kind != TERM or len(self.payload) < BLOB_HEADER.size:
+            raise FrameError("not a terminal frame")
+        (term,) = BLOB_HEADER.unpack_from(self.payload)
+        return term, self.payload[BLOB_HEADER.size :]
+
 
 def encode(kind: int, payload: bytes) -> bytes:
     """One frame, ready to write."""
@@ -92,6 +101,11 @@ def encode_audio(turn: int, seq: int, pcm: bytes) -> bytes:
 def encode_blob(transfer: int, data: bytes) -> bytes:
     """A `BLOB` frame."""
     return encode(BLOB, BLOB_HEADER.pack(transfer) + data)
+
+
+def encode_term(term: int, data: bytes) -> bytes:
+    """A `TERM` frame."""
+    return encode(TERM, BLOB_HEADER.pack(term) + data)
 
 
 async def read_frame(reader: asyncio.StreamReader) -> Frame:
