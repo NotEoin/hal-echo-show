@@ -27,6 +27,7 @@ The device sends the following JSON messages.
 | `need_model` | `name` | Send this model |
 | `update_result` | `ok`, `message` | What Android's installer said |
 | `ping` | `t` | Keep-alive, every 20 s |
+| `crash_report` | `text` | The stack trace of the app's last crash, sent once after it restarts |
 | `term_size` | `term`, `cols`, `rows` | The terminal screen's size in cells; the program starts at it, or is resized |
 | `term_close` | `term` | The terminal was closed on the device (the small eye was tapped) |
 

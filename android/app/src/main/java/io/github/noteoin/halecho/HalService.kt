@@ -64,6 +64,7 @@ class HalService : Service(), Link.Handler {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLog.install(this)
         prefs = Prefs(this)
         models = ModelStore(File(filesDir, "models"))
         blobs = BlobReceiver(File(cacheDir, "incoming"), ::onBlob)
@@ -122,6 +123,7 @@ class HalService : Service(), Link.Handler {
 
     // -- the link ------------------------------------------------------------------
     override fun onConnected() {
+        CrashLog.take(this)?.let { link.send(JSONObject().put("type", "crash_report").put("text", it)) }
         UiState.connected = true
         UiState.status = "Connected to ${prefs.pcName}"
     }

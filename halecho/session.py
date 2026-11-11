@@ -188,6 +188,7 @@ class DeviceSession:
             "ping": self._on_ping,
             "term_size": self._on_term_size,
             "term_close": self._on_term_close,
+            "crash_report": self._on_crash_report,
         }.get(kind)
         if handler is None:
             log.warning("%s sent an unknown message '%s'", self.device.name, kind)
@@ -280,6 +281,9 @@ class DeviceSession:
 
     async def _on_update_result(self, msg: dict[str, Any]) -> None:
         log.info("%s update: %s", self.device.name, msg.get("message") or msg.get("ok"))
+
+    async def _on_crash_report(self, msg: dict[str, Any]) -> None:
+        log.error("%s crashed earlier:\n%s", self.device.name, str(msg.get("text", ""))[:8000])
 
     async def _on_ping(self, msg: dict[str, Any]) -> None:
         await self.send({"type": "pong", "t": msg.get("t")})

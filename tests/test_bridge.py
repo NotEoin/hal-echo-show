@@ -265,3 +265,12 @@ async def test_disconnect_ends_the_monitor_program(bridge, tmp_path):
     await device.close()
     await asyncio.wait_for(screen.closed.wait(), 5)
     assert not screen._proc.running
+
+
+async def test_crash_report_is_logged(bridge, tmp_path, caplog):
+    device = await _paired(bridge, tmp_path)
+    await device.expect("welcome")
+    await device.send({"type": "crash_report", "text": "java.lang.IllegalStateException: boom"})
+    await device.send({"type": "ping", "t": 1})
+    await device.expect("pong")
+    assert "IllegalStateException: boom" in caplog.text
